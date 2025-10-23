@@ -9,37 +9,51 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Scanner Bluetooth"
+        android:text="eTT-SAIL Monitor"
         android:textSize="24sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="8dp" />
+
+    <!-- Adresse MAC cible -->
+    <TextView
+        android:id="@+id/tvTargetMac"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Appareil eTT-SAIL: F3:B9:F6:76:07:8F"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:padding="8dp"
+        android:background="#C8E6C9"
+        android:textColor="#2E7D32"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
 
     <!-- Statut -->
     <TextView
         android:id="@+id/tvStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Prêt à scanner"
+        android:text="Prêt à écouter"
         android:textSize="16sp"
         android:padding="12dp"
         android:background="#E3F2FD"
         android:textColor="#1976D2"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="12dp" />
 
     <!-- Boutons de contrôle -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="12dp">
 
         <Button
             android:id="@+id/btnStartScan"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Démarrer Scan"
+            android:text="Démarrer"
             android:layout_marginEnd="4dp" />
 
         <Button
@@ -47,7 +61,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Arrêter Scan"
+            android:text="Arrêter"
             android:enabled="false"
             android:layout_marginStart="4dp"
             android:layout_marginEnd="4dp" />
@@ -61,48 +75,63 @@
             android:layout_marginStart="4dp" />
     </LinearLayout>
 
-    <!-- Information -->
+    <!-- Données décodées (partie supérieure) -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="📡 Cette app détecte les appareils Bluetooth même non appairés"
-        android:textSize="12sp"
+        android:text="📊 Données décodées :"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1.2"
+        android:background="#FFFFFF"
         android:padding="8dp"
-        android:background="#FFF3E0"
-        android:textColor="#E65100"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:id="@+id/tvParsedData"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="En attente de données..."
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:textColor="#000000" />
+    </ScrollView>
 
     <!-- Séparateur -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="2dp"
+        android:layout_height="1dp"
         android:background="#CCCCCC"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="8dp" />
 
-    <!-- Label -->
+    <!-- Données brutes (partie inférieure) -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Appareils détectés et données :"
-        android:textSize="18sp"
+        android:text="🔧 Données brutes (HEX) :"
+        android:textSize="16sp"
         android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="4dp" />
 
-    <!-- Zone d'affichage avec scroll -->
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:background="#F5F5F5"
-        android:padding="12dp">
+        android:padding="8dp">
 
         <TextView
             android:id="@+id/tvReceivedData"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Cliquez sur 'Démarrer Scan' pour rechercher des appareils..."
-            android:textSize="14sp"
+            android:text="Cliquez sur 'Démarrer' pour écouter..."
+            android:textSize="12sp"
             android:fontFamily="monospace"
             android:textColor="#000000" />
     </ScrollView>

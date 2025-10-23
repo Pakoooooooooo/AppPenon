@@ -2,15 +2,10 @@ package com.example.apppenon
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothSocket
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.bluetooth.le.ScanSettings
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -19,77 +14,33 @@ import android.os.Looper
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import java.io.InputStream
-import java.util.UUID
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var tvStatus: TextView
     private lateinit var tvReceivedData: TextView
+    private lateinit var tvParsedData: TextView
     private lateinit var btnStartScan: Button
     private lateinit var btnStopScan: Button
     private lateinit var btnClearData: Button
+    private lateinit var tvTargetMac: TextView
 
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private var bluetoothLeScanner: BluetoothLeScanner? = null
-    private var bluetoothSocket: BluetoothSocket? = null
-    private var inputStream: InputStream? = null
     private var isScanning = false
-    private var isConnected = false
     private val handler = Handler(Looper.getMainLooper())
 
-    private val discoveredDevices = mutableListOf<BluetoothDevice>()
-    private val MY_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+    // Adresse MAC cible (format avec :)
+    private val TARGET_MAC_ADDRESS = "F3:B9:F6:76:07:8F"
+    private var frameCount = 0
+
     private val PERMISSION_REQUEST_CODE = 100
 
-    // Receiver pour détecter les appareils Bluetooth classiques
-    private val bluetoothReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                BluetoothDevice.ACTION_FOUND -> {
-                    if (ActivityCompat.checkSelfPermission(
-                            context,
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                                Manifest.permission.BLUETOOTH_CONNECT
-                            else
-                                Manifest.permission.BLUETOOTH
-                        ) != PackageManager.PERMISSION_GRANTED
-                    ) {
-                        return
-                    }
-
-                    val device: BluetoothDevice? =
-                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-
-                    device?.let {
-                        if (!discoveredDevices.contains(it)) {
-                            discoveredDevices.add(it)
-                            val deviceName = it.name ?: "Appareil inconnu"
-                            val deviceAddress = it.address
-
-                            handler.post {
-                                val currentText = tvReceivedData.text.toString()
-                                tvReceivedData.text = currentText +
-                                        "\n[DÉCOUVERT] $deviceName ($deviceAddress)"
-                                autoScroll()
-                            }
-                        }
-                    }
-                }
-                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    handler.post {
-                        tvStatus.text = "Scan terminé - ${discoveredDevices.size} appareils trouvés"
-                        updateUIState()
-                    }
-                }
-            }
-        }
-    }
-
-    // Callback pour BLE (Bluetooth Low Energy)
+    // Callback pour BLE
     private val bleScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             if (ActivityCompat.checkSelfPermission(
@@ -104,38 +55,46 @@ class MainActivity : AppCompatActivity() {
             }
 
             val device = result.device
-            if (!discoveredDevices.contains(device)) {
-                discoveredDevices.add(device)
 
-                val deviceName = device.name ?: "Appareil BLE inconnu"
-                val deviceAddress = device.address
+            // Vérifier si c'est l'appareil cible
+            if (device.address.equals(TARGET_MAC_ADDRESS, ignoreCase = true)) {
                 val rssi = result.rssi
-
-                // Extraire les données de broadcast si disponibles
                 val scanRecord = result.scanRecord
-                val broadcastData = scanRecord?.bytes
 
-                handler.post {
-                    val currentText = tvReceivedData.text.toString()
-                    var newText = currentText +
-                            "\n[BLE DÉCOUVERT] $deviceName ($deviceAddress) RSSI: $rssi dBm"
+                if (scanRecord != null) {
+                    // Récupérer les données manufacturer
+                    val manufacturerData = scanRecord.getManufacturerSpecificData(0xFFFF)
+                        ?: scanRecord.bytes
 
-                    // Afficher les données de broadcast
-                    if (broadcastData != null && broadcastData.isNotEmpty()) {
-                        val hexData = broadcastData.joinToString(" ") {
-                            "%02X".format(it)
+                    if (manufacturerData != null && manufacturerData.isNotEmpty()) {
+                        frameCount++
+
+                        handler.post {
+                            // Afficher les données brutes
+                            val hexData = manufacturerData.joinToString(" ") {
+                                "%02X".format(it)
+                            }
+
+                            val currentText = tvReceivedData.text.toString()
+                            val newText = "$currentText\n[Trame $frameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
+                            tvReceivedData.text = newText
+
+                            // Décoder les données eTT-SAIL
+                            val parsedData = parseETTSailData(manufacturerData)
+                            tvParsedData.text = parsedData
+
+                            tvStatus.text = "✓ Réception en cours (${frameCount} trames)"
+
+                            autoScroll()
                         }
-                        newText += "\n  Données: $hexData"
                     }
-
-                    tvReceivedData.text = newText
-                    autoScroll()
                 }
             }
         }
 
         override fun onScanFailed(errorCode: Int) {
             handler.post {
+                tvStatus.text = "Échec du scan BLE: $errorCode"
                 Toast.makeText(
                     this@MainActivity,
                     "Échec du scan BLE: $errorCode",
@@ -151,9 +110,13 @@ class MainActivity : AppCompatActivity() {
 
         tvStatus = findViewById(R.id.tvStatus)
         tvReceivedData = findViewById(R.id.tvReceivedData)
+        tvParsedData = findViewById(R.id.tvParsedData)
         btnStartScan = findViewById(R.id.btnStartScan)
         btnStopScan = findViewById(R.id.btnStopScan)
         btnClearData = findViewById(R.id.btnClearData)
+        tvTargetMac = findViewById(R.id.tvTargetMac)
+
+        tvTargetMac.text = "Appareil eTT-SAIL: $TARGET_MAC_ADDRESS"
 
         if (bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth non disponible", Toast.LENGTH_LONG).show()
@@ -165,13 +128,6 @@ class MainActivity : AppCompatActivity() {
 
         requestBluetoothPermissions()
 
-        // Enregistrer le receiver
-        val filter = IntentFilter().apply {
-            addAction(BluetoothDevice.ACTION_FOUND)
-            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
-        }
-        registerReceiver(bluetoothReceiver, filter)
-
         btnStartScan.setOnClickListener {
             startScanning()
         }
@@ -182,7 +138,8 @@ class MainActivity : AppCompatActivity() {
 
         btnClearData.setOnClickListener {
             tvReceivedData.text = ""
-            discoveredDevices.clear()
+            tvParsedData.text = "En attente de données..."
+            frameCount = 0
         }
 
         updateUIState()
@@ -230,20 +187,30 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        discoveredDevices.clear()
-        tvReceivedData.text = "=== SCAN EN COURS ===\n"
+        frameCount = 0
+        tvReceivedData.text = "=== ÉCOUTE DE $TARGET_MAC_ADDRESS ===\n"
+        tvParsedData.text = "En attente de données..."
         isScanning = true
         updateUIState()
 
-        // Scanner Bluetooth classique
-        bluetoothAdapter?.startDiscovery()
+        // Configuration du scan BLE avec Coded PHY si disponible
+        val scanSettings = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .setLegacy(false)
+                .setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
+                .build()
+        } else {
+            ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build()
+        }
 
-        // Scanner BLE
-        bluetoothLeScanner?.startScan(bleScanCallback)
+        bluetoothLeScanner?.startScan(null, scanSettings, bleScanCallback)
 
-        tvStatus.text = "Scan en cours..."
+        tvStatus.text = "Écoute des advertising packets..."
 
-        Toast.makeText(this, "Scan démarré (Bluetooth + BLE)", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Scan BLE démarré (Coded PHY)", Toast.LENGTH_SHORT).show()
     }
 
     private fun stopScanning() {
@@ -258,117 +225,110 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        bluetoothAdapter?.cancelDiscovery()
         bluetoothLeScanner?.stopScan(bleScanCallback)
 
         isScanning = false
         updateUIState()
 
-        tvStatus.text = "Scan arrêté - ${discoveredDevices.size} appareils trouvés"
-
-        // Afficher la liste des appareils découverts
-        if (discoveredDevices.isNotEmpty()) {
-            showDiscoveredDevices()
-        }
+        tvStatus.text = "Scan arrêté - $frameCount trames reçues"
     }
 
-    private fun showDiscoveredDevices() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                    Manifest.permission.BLUETOOTH_CONNECT
-                else
-                    Manifest.permission.BLUETOOTH
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
+    private fun parseETTSailData(data: ByteArray): String {
+        return try {
+            // Chercher les données manufacturer dans le payload complet
+            var manufacturerData = data
 
-        val deviceList = discoveredDevices.map {
-            "${it.name ?: "Inconnu"}\n${it.address}"
-        }.toTypedArray()
+            // Si les données commencent par un header advertising, chercher les données manufacturer
+            var offset = 0
+            while (offset < data.size - 2) {
+                val length = data[offset].toInt() and 0xFF
+                if (length == 0) break
 
-        AlertDialog.Builder(this)
-            .setTitle("Appareils découverts (${discoveredDevices.size})")
-            .setItems(deviceList) { _, which ->
-                connectToDevice(discoveredDevices[which])
+                val type = data[offset + 1].toInt() and 0xFF
+
+                // Type 0xFF = Manufacturer Specific Data
+                if (type == 0xFF && length >= 17) {
+                    // Les données commencent après le type
+                    manufacturerData = data.copyOfRange(offset + 2, offset + 1 + length)
+                    break
+                }
+
+                offset += length + 1
             }
-            .setNegativeButton("Fermer", null)
-            .show()
-    }
 
-    private fun connectToDevice(device: BluetoothDevice) {
-        tvStatus.text = "Tentative de connexion..."
+            // Structure eTT-SAIL : au moins 17 octets
+            // 4 bytes: frame_cnt (uint32)
+            // 1 byte: frame_type (uint8)
+            // 2 bytes: Vbat (int16)
+            // 2 bytes: mean_mag_z (int16)
+            // 2 bytes: sd_mag_z (int16)
+            // 2 bytes: mean_acc (int16)
+            // 2 bytes: sd_acc (int16)
+            // 2 bytes: max_acc (int16)
 
-        Thread {
-            try {
-                if (ActivityCompat.checkSelfPermission(
-                        this,
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                            Manifest.permission.BLUETOOTH_CONNECT
-                        else
-                            Manifest.permission.BLUETOOTH
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    return@Thread
-                }
-
-                bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(MY_UUID)
-                bluetoothAdapter?.cancelDiscovery()
-                bluetoothSocket?.connect()
-                inputStream = bluetoothSocket?.inputStream
-                isConnected = true
-
-                handler.post {
-                    tvStatus.text = "Connecté à ${device.name ?: device.address}"
-                    tvReceivedData.text = tvReceivedData.text.toString() +
-                            "\n\n=== CONNEXION ÉTABLIE ===\n"
-                    updateUIState()
-                    Toast.makeText(this, "Connecté avec succès", Toast.LENGTH_SHORT).show()
-                }
-
-                listenForData()
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                handler.post {
-                    tvStatus.text = "Échec de connexion"
-                    tvReceivedData.text = tvReceivedData.text.toString() +
-                            "\n[ERREUR] Impossible de se connecter: ${e.message}\n"
-                    Toast.makeText(this, "Connexion impossible", Toast.LENGTH_LONG).show()
-                    autoScroll()
-                }
+            if (manufacturerData.size < 17) {
+                return "Données insuffisantes (${manufacturerData.size} octets)\nBrut: ${
+                    manufacturerData.joinToString(" ") { "%02X".format(it) }
+                }"
             }
-        }.start()
-    }
 
-    private fun listenForData() {
-        val buffer = ByteArray(1024)
-        var bytes: Int
+            val buffer = ByteBuffer.wrap(manufacturerData).order(ByteOrder.LITTLE_ENDIAN)
 
-        while (isConnected) {
-            try {
-                bytes = inputStream?.read(buffer) ?: -1
-
-                if (bytes > 0) {
-                    val receivedData = String(buffer, 0, bytes)
-
-                    handler.post {
-                        val currentText = tvReceivedData.text.toString()
-                        tvReceivedData.text = currentText + receivedData
-                        autoScroll()
-                    }
-                }
-
-            } catch (e: Exception) {
-                isConnected = false
-                handler.post {
-                    tvStatus.text = "Connexion perdue"
-                    Toast.makeText(this, "Connexion interrompue", Toast.LENGTH_SHORT).show()
-                    updateUIState()
-                }
-                break
+            // Ignorer les 2 premiers octets si c'est le company ID
+            var startOffset = 0
+            if (manufacturerData.size >= 19) {
+                startOffset = 2
             }
+
+            buffer.position(startOffset)
+
+            val frameCnt = buffer.int
+            val frameType = buffer.get().toInt() and 0xFF
+            val vbat = buffer.short.toInt()
+            val meanMagZ = buffer.short.toInt()
+            val sdMagZ = buffer.short.toInt()
+            val meanAcc = buffer.short.toInt()
+            val sdAcc = buffer.short.toInt()
+            val maxAcc = buffer.short.toInt()
+
+            // Formatage avec unités
+            val vbatV = vbat / 1000.0
+            val meanMagZmT = meanMagZ / 1000.0
+            val sdMagZmT = sdMagZ / 1000.0
+            val meanAccG = meanAcc / 1000.0
+            val sdAccG = sdAcc / 1000.0
+            val maxAccG = maxAcc / 1000.0
+
+            // Déterminer l'état (ACCROCHE/TRANSITION/DECROCHE)
+            val stateFlow = when {
+                sdMagZmT <= 50 -> "🟢 ACCROCHÉ"
+                sdMagZmT >= 150 -> "🔴 DÉCROCHÉ"
+                else -> "🟡 TRANSITION"
+            }
+
+            buildString {
+                appendLine("╔═══════════════════════════════╗")
+                appendLine("║    eTT-SAIL - Trame #$frameCnt")
+                appendLine("╠═══════════════════════════════╣")
+                appendLine("║ Type: $frameType")
+                appendLine("║ Batterie: ${"%.2f".format(vbatV)} V")
+                appendLine("╠═══════════════════════════════╣")
+                appendLine("║ MAGNÉTOMÈTRE (Z)")
+                appendLine("║ • Moyenne: ${"%.1f".format(meanMagZmT)} mT")
+                appendLine("║ • Écart-type: ${"%.1f".format(sdMagZmT)} mT")
+                appendLine("║ • État: $stateFlow")
+                appendLine("╠═══════════════════════════════╣")
+                appendLine("║ ACCÉLÉROMÈTRE")
+                appendLine("║ • Moyenne: ${"%.3f".format(meanAccG)} g")
+                appendLine("║ • Écart-type: ${"%.3f".format(sdAccG)} g")
+                appendLine("║ • Maximum: ${"%.3f".format(maxAccG)} g")
+                appendLine("╚═══════════════════════════════╝")
+            }
+
+        } catch (e: Exception) {
+            "Erreur de décodage: ${e.message}\n" +
+                    "Taille données: ${data.size} octets\n" +
+                    "HEX: ${data.joinToString(" ") { "%02X".format(it) }}"
         }
     }
 
@@ -380,17 +340,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUIState() {
-        btnStartScan.isEnabled = !isScanning && !isConnected
+        btnStartScan.isEnabled = !isScanning
         btnStopScan.isEnabled = isScanning
     }
 
     override fun onDestroy() {
         super.onDestroy()
         try {
-            unregisterReceiver(bluetoothReceiver)
             stopScanning()
-            inputStream?.close()
-            bluetoothSocket?.close()
         } catch (e: Exception) {
             e.printStackTrace()
         }
