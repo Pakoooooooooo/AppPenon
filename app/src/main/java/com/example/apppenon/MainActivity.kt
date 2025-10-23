@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -34,13 +35,13 @@ class MainActivity : AppCompatActivity() {
     private var isScanning = false
     private val handler = Handler(Looper.getMainLooper())
 
-    // Adresse MAC cible (format avec :)
     private val TARGET_MAC_ADDRESS = "F3:B9:F6:76:07:8F"
     private var frameCount = 0
+    private var lastFrameCnt = -1L // Pour détecter les trames perdues
 
     private val PERMISSION_REQUEST_CODE = 100
+    private val TAG = "eTT-SAIL-BLE"
 
-    // Callback pour BLE
     private val bleScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             if (ActivityCompat.checkSelfPermission(
@@ -56,13 +57,11 @@ class MainActivity : AppCompatActivity() {
 
             val device = result.device
 
-            // Vérifier si c'est l'appareil cible
             if (device.address.equals(TARGET_MAC_ADDRESS, ignoreCase = true)) {
                 val rssi = result.rssi
                 val scanRecord = result.scanRecord
 
                 if (scanRecord != null) {
-                    // Récupérer les données manufacturer
                     val manufacturerData = scanRecord.getManufacturerSpecificData(0xFFFF)
                         ?: scanRecord.bytes
 
@@ -70,16 +69,20 @@ class MainActivity : AppCompatActivity() {
                         frameCount++
 
                         handler.post {
-                            // Afficher les données brutes
                             val hexData = manufacturerData.joinToString(" ") {
                                 "%02X".format(it)
                             }
+
+                            // LOG DE DEBUG COMPLET
+                            Log.d(TAG, "=== TRAME #$frameCount ===")
+                            Log.d(TAG, "Taille: ${manufacturerData.size} octets")
+                            Log.d(TAG, "HEX: $hexData")
+                            Log.d(TAG, "RSSI: $rssi dBm")
 
                             val currentText = tvReceivedData.text.toString()
                             val newText = "$currentText\n[Trame $frameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
                             tvReceivedData.text = newText
 
-                            // Décoder les données eTT-SAIL
                             val parsedData = parseETTSailData(manufacturerData)
                             tvParsedData.text = parsedData
 
@@ -140,6 +143,7 @@ class MainActivity : AppCompatActivity() {
             tvReceivedData.text = ""
             tvParsedData.text = "En attente de données..."
             frameCount = 0
+            lastFrameCnt = -1
         }
 
         updateUIState()
@@ -188,12 +192,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         frameCount = 0
+        lastFrameCnt = -1
         tvReceivedData.text = "=== ÉCOUTE DE $TARGET_MAC_ADDRESS ===\n"
         tvParsedData.text = "En attente de données..."
         isScanning = true
         updateUIState()
 
-        // Configuration du scan BLE avec Coded PHY si disponible
         val scanSettings = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
@@ -235,54 +239,98 @@ class MainActivity : AppCompatActivity() {
 
     private fun parseETTSailData(data: ByteArray): String {
         return try {
-            // Chercher les données manufacturer dans le payload complet
-            var manufacturerData = data
+            // LOG: Afficher les données brutes complètes
+            val fullHex = data.joinToString(" ") { "%02X".format(it) }
+            Log.d(TAG, "Données complètes: $fullHex")
 
-            // Si les données commencent par un header advertising, chercher les données manufacturer
+            var manufacturerData = data
+            var dataStartOffset = 0
+
+            // Chercher les données manufacturer dans le payload
             var offset = 0
+            var foundManufacturerData = false
+
             while (offset < data.size - 2) {
                 val length = data[offset].toInt() and 0xFF
                 if (length == 0) break
 
                 val type = data[offset + 1].toInt() and 0xFF
 
+                Log.d(TAG, "Offset $offset: length=$length, type=0x${"%02X".format(type)}")
+
                 // Type 0xFF = Manufacturer Specific Data
-                if (type == 0xFF && length >= 17) {
-                    // Les données commencent après le type
-                    manufacturerData = data.copyOfRange(offset + 2, offset + 1 + length)
+                if (type == 0xFF) {
+                    dataStartOffset = offset + 2
+                    manufacturerData = data.copyOfRange(offset + 2, minOf(offset + 1 + length, data.size))
+                    foundManufacturerData = true
+                    Log.d(TAG, "Manufacturer data trouvée à offset $dataStartOffset, taille=${manufacturerData.size}")
                     break
                 }
 
                 offset += length + 1
             }
 
-            // Structure eTT-SAIL : au moins 17 octets
-            // 4 bytes: frame_cnt (uint32)
-            // 1 byte: frame_type (uint8)
-            // 2 bytes: Vbat (int16)
-            // 2 bytes: mean_mag_z (int16)
-            // 2 bytes: sd_mag_z (int16)
-            // 2 bytes: mean_acc (int16)
-            // 2 bytes: sd_acc (int16)
-            // 2 bytes: max_acc (int16)
+            // Si pas de structure AD, utiliser les données brutes
+            if (!foundManufacturerData) {
+                Log.d(TAG, "Pas de structure AD détectée, utilisation données brutes")
+            }
+
+            val dataHex = manufacturerData.joinToString(" ") { "%02X".format(it) }
+            Log.d(TAG, "Données à décoder: $dataHex")
 
             if (manufacturerData.size < 17) {
-                return "Données insuffisantes (${manufacturerData.size} octets)\nBrut: ${
-                    manufacturerData.joinToString(" ") { "%02X".format(it) }
-                }"
+                return "⚠️ Données insuffisantes (${manufacturerData.size} octets)\n" +
+                        "Minimum requis: 17 octets\n\n" +
+                        "HEX: $dataHex"
             }
 
-            val buffer = ByteBuffer.wrap(manufacturerData).order(ByteOrder.LITTLE_ENDIAN)
+            // TESTER DIFFÉRENTS OFFSETS ET ENDIANNESS
+            val results = mutableListOf<String>()
 
-            // Ignorer les 2 premiers octets si c'est le company ID
-            var startOffset = 0
+            // Test 1: Sans offset, Little Endian
+            results.add(testDecode(manufacturerData, 0, ByteOrder.LITTLE_ENDIAN, "Sans offset, LE"))
+
+            // Test 2: Avec 2 octets offset (Company ID), Little Endian
             if (manufacturerData.size >= 19) {
-                startOffset = 2
+                results.add(testDecode(manufacturerData, 2, ByteOrder.LITTLE_ENDIAN, "Offset +2, LE"))
             }
 
-            buffer.position(startOffset)
+            // Test 3: Sans offset, Big Endian
+            results.add(testDecode(manufacturerData, 0, ByteOrder.BIG_ENDIAN, "Sans offset, BE"))
 
-            val frameCnt = buffer.int
+            // Test 4: Avec 2 octets offset, Big Endian
+            if (manufacturerData.size >= 19) {
+                results.add(testDecode(manufacturerData, 2, ByteOrder.BIG_ENDIAN, "Offset +2, BE"))
+            }
+
+            buildString {
+                appendLine("═══════════════════════════════")
+                appendLine("TESTS DE DÉCODAGE")
+                appendLine("═══════════════════════════════")
+                results.forEach { appendLine(it) }
+                appendLine("═══════════════════════════════")
+                appendLine("\nDonnées brutes:")
+                appendLine(dataHex)
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur de décodage", e)
+            "❌ Erreur: ${e.message}\n" +
+                    "Taille: ${data.size} octets\n" +
+                    "HEX: ${data.joinToString(" ") { "%02X".format(it) }}"
+        }
+    }
+
+    private fun testDecode(data: ByteArray, offset: Int, order: ByteOrder, label: String): String {
+        return try {
+            if (data.size < offset + 17) {
+                return "[$label] Taille insuffisante"
+            }
+
+            val buffer = ByteBuffer.wrap(data).order(order)
+            buffer.position(offset)
+
+            val frameCnt = buffer.int.toLong() and 0xFFFFFFFFL
             val frameType = buffer.get().toInt() and 0xFF
             val vbat = buffer.short.toInt()
             val meanMagZ = buffer.short.toInt()
@@ -291,44 +339,38 @@ class MainActivity : AppCompatActivity() {
             val sdAcc = buffer.short.toInt()
             val maxAcc = buffer.short.toInt()
 
-            // Formatage avec unités
-            val vbatV = vbat / 1000.0
-            val meanMagZmT = meanMagZ / 1000.0
-            val sdMagZmT = sdMagZ / 1000.0
-            val meanAccG = meanAcc / 1000.0
-            val sdAccG = sdAcc / 1000.0
-            val maxAccG = maxAcc / 1000.0
+            // LOG DÉTAILLÉ
+            Log.d(TAG, "[$label] frameCnt=$frameCnt, type=$frameType, vbat=$vbat")
 
-            // Déterminer l'état (ACCROCHE/TRANSITION/DECROCHE)
-            val stateFlow = when {
-                sdMagZmT <= 50 -> "🟢 ACCROCHÉ"
-                sdMagZmT >= 150 -> "🔴 DÉCROCHÉ"
-                else -> "🟡 TRANSITION"
+            // Vérifier si c'est cohérent
+            val vbatV = vbat / 1000.0
+            val isCoherent = frameCnt in 0..100000000 &&
+                    vbatV in 2.0..4.5 &&
+                    frameType in 0..255
+
+            // Détection de trames perdues
+            val lostFrames = if (lastFrameCnt >= 0 && frameCnt > lastFrameCnt) {
+                val lost = frameCnt - lastFrameCnt - 1
+                if (lost > 0) " ⚠️ $lost trame(s) perdue(s)" else ""
+            } else ""
+
+            if (isCoherent && lastFrameCnt < frameCnt) {
+                lastFrameCnt = frameCnt
             }
 
+            val coherentMark = if (isCoherent) "✅" else "❌"
+
             buildString {
-                appendLine("╔═══════════════════════════════╗")
-                appendLine("║    eTT-SAIL - Trame #$frameCnt")
-                appendLine("╠═══════════════════════════════╣")
-                appendLine("║ Type: $frameType")
-                appendLine("║ Batterie: ${"%.2f".format(vbatV)} V")
-                appendLine("╠═══════════════════════════════╣")
-                appendLine("║ MAGNÉTOMÈTRE (Z)")
-                appendLine("║ • Moyenne: ${"%.1f".format(meanMagZmT)} mT")
-                appendLine("║ • Écart-type: ${"%.1f".format(sdMagZmT)} mT")
-                appendLine("║ • État: $stateFlow")
-                appendLine("╠═══════════════════════════════╣")
-                appendLine("║ ACCÉLÉROMÈTRE")
-                appendLine("║ • Moyenne: ${"%.3f".format(meanAccG)} g")
-                appendLine("║ • Écart-type: ${"%.3f".format(sdAccG)} g")
-                appendLine("║ • Maximum: ${"%.3f".format(maxAccG)} g")
-                appendLine("╚═══════════════════════════════╝")
+                appendLine("\n[$label] $coherentMark")
+                appendLine("  Frame: $frameCnt$lostFrames")
+                appendLine("  Type: $frameType")
+                appendLine("  Vbat: ${"%.3f".format(vbatV)} V")
+                appendLine("  MagZ: mean=${meanMagZ/1000.0}mT, sd=${sdMagZ/1000.0}mT")
+                appendLine("  Acc: mean=${meanAcc/1000.0}g, max=${maxAcc/1000.0}g")
             }
 
         } catch (e: Exception) {
-            "Erreur de décodage: ${e.message}\n" +
-                    "Taille données: ${data.size} octets\n" +
-                    "HEX: ${data.joinToString(" ") { "%02X".format(it) }}"
+            "[$label] Erreur: ${e.message}"
         }
     }
 
