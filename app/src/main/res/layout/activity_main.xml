@@ -102,6 +102,35 @@
             android:textColor="#000000" />
     </ScrollView>
 
+    <!-- Etats des pennons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:id="@+id/tvEtatBabord"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Babord : ⏳ En attente..."
+            android:textSize="15sp"
+            android:padding="6dp"
+            android:background="#FFF3E0"
+            android:textColor="#E65100"
+            android:layout_marginBottom="6dp"/>
+
+        <TextView
+            android:id="@+id/tvEtatTribord"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tribord : ⏳ En attente..."
+            android:textSize="15sp"
+            android:padding="6dp"
+            android:background="#E8F5E9"
+            android:textColor="#1B5E20"/>
+    </LinearLayout>
+
     <!-- Séparateur -->
     <View
         android:layout_width="match_parent"
