@@ -9,15 +9,42 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import kotlin.random.Random
 import android.content.Intent
+import com.example.apppenon.Penon
 
 class MainActivity : AppCompatActivity() {
 
     /* ===== PARAMÈTRES CONFIGURABLES ===== */
     private val windowSize = 10               // nombre de valeurs pour la moyenne glissante (10 sec)
     private val simInterval = 1000L           // intervalle de simulation en ms (1Hz)
-    private val fakeDevices = listOf(
-        "Babord" to "AA:BB:CC:DD:EE:01",
-        "Tribord" to "AA:BB:CC:DD:EE:02"
+    private var fakeDevices = listOf(
+        Penon(
+            penonName = "Babord",
+            macAdress = "AA:BB:CC:DD:EE:01",
+            rssi = true,
+            rssiLow = -90,
+            rssiHigh = -20,
+            flowState = true,
+            flowStateLow = 500,
+            flowStateHigh = 800,
+            sDFlowState = true,
+            sDFlowStateLow = 100,
+            sDFlowStateHigh = 800,
+            detachedThresh = 100.0
+            ),
+        Penon(
+            penonName = "Tribord",
+            macAdress = "AA:BB:CC:DD:EE:02",
+            rssi = true,
+            rssiLow = -90,
+            rssiHigh = -20,
+            flowState = true,
+            flowStateLow = 500,
+            flowStateHigh = 800,
+            sDFlowState = true,
+            sDFlowStateLow = 100,
+            sDFlowStateHigh = 800,
+            detachedThresh = 100.0
+        )
     )
 
     /* ===== CODE COMMUN (UI + affichage) ===== */
@@ -46,21 +73,6 @@ class MainActivity : AppCompatActivity() {
     /* ===== CODE SIMULATION ===== */
     private val simulationHandler = Handler(Looper.getMainLooper())
 
-    var penon = Penon(
-        penonName = "penon1",
-        macAdress = "00:00:00:00:00:11",
-        rssi = true,
-        rssiLow = -90,
-        rssiHigh = -20,
-        flowState = true,
-        flowStateLow = 500,
-        flowStateHigh = 800,
-        sDFlowState = true,
-        sDFlowStateLow = 100,
-        sDFlowStateHigh = 800,
-        detachedThresh = 100.0
-    )
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -79,7 +91,7 @@ class MainActivity : AppCompatActivity() {
 
         settingsBtn.setOnClickListener {
             val intent = Intent(this, PenonsSettingsActivity::class.java)
-            intent.putExtra("penon_data", penon)
+            intent.putExtra("penon_data", fakeDevices[0])
             startActivityForResult(intent, 1)
         }
 
@@ -89,8 +101,8 @@ class MainActivity : AppCompatActivity() {
         btnClear.setOnClickListener {
             tvReceivedData.text = ""
             tvParsedData.text = ""
-            tvEtatBabord.text = "Babord : ⏳ En attente..."
-            tvEtatTribord.text = "Tribord : ⏳ En attente..."
+            tvEtatBabord.text = fakeDevices[0].penonName+" : ⏳ En attente..."
+            tvEtatTribord.text = fakeDevices[1].penonName+" : ⏳ En attente..."
             frameBabord = 0
             frameTribord = 0
             babordValues.clear()
@@ -131,7 +143,7 @@ class MainActivity : AppCompatActivity() {
 
                     // Génération d'une valeur aléatoire 0-200
                     val value = Random.nextInt(0, 201)
-                    val turbulent = value < penon.detachedThresh
+                    val turbulent = value < fakeDevices[0].detachedThresh
                     val hexFrame = generateHexFrame(value, turbulent)
 
                     // Comptage séparé
@@ -151,8 +163,8 @@ class MainActivity : AppCompatActivity() {
                     val avgBabord = if (babordValues.isNotEmpty()) babordValues.average() else 0.0
                     val avgTribord = if (tribordValues.isNotEmpty()) tribordValues.average() else 0.0
 
-                    val etatBabord = if (avgBabord >= penon.detachedThresh) "Attaché 🟢" else "Turbulent 🔴"
-                    val etatTribord = if (avgTribord >= penon.detachedThresh) "Attaché 🟢" else "Turbulent 🔴"
+                    val etatBabord = if (avgBabord >= fakeDevices[0].detachedThresh) "Attaché 🟢" else "Turbulent 🔴"
+                    val etatTribord = if (avgTribord >= fakeDevices[0].detachedThresh) "Attaché 🟢" else "Turbulent 🔴"
 
                     val brut = "[$name] $hexFrame"
                     val decode = "Trame ${name.first()}#$frameNumber | $name | Valeur: $value | ${if (turbulent) "Turbulent" else "Attaché"}"
@@ -202,7 +214,9 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == 1 && resultCode == RESULT_OK) {
             val updatedPenon = data?.getSerializableExtra("penon_data") as? Penon
             if (updatedPenon != null) {
-                penon = updatedPenon
+                val mutableList = fakeDevices.toMutableList()
+                mutableList[0] = updatedPenon
+                fakeDevices = mutableList
             }
         }
     }
