@@ -150,6 +150,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    var penon = Penon(
+        penonName = "penon1",
+        macAdress = "00:00:00:00:00:11",
+        rssi = true,
+        rssiLow = -90,
+        rssiHigh = -20,
+        flowState = true,
+        flowStateLow = 500,
+        flowStateHigh = 800,
+        sDFlowState = true,
+        sDFlowStateLow = 100,
+        sDFlowStateHigh = 800,
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -163,8 +177,11 @@ class MainActivity : AppCompatActivity() {
         tvTargetMac = findViewById(R.id.tvTargetMac)
 
         settingsBtn = findViewById(R.id.settingsBtn)
+
         settingsBtn.setOnClickListener {
-            startActivity(Intent(this, PenonsSettingsActivity::class.java))
+            val intent = Intent(this, PenonsSettingsActivity::class.java)
+            intent.putExtra("penon_data", penon)
+            startActivityForResult(intent, 1)
         }
 
         tvTargetMac.text = "Appareil eTT-SAIL: $TARGET_MAC_ADDRESS"
@@ -443,6 +460,16 @@ class MainActivity : AppCompatActivity() {
             bleHandlerThread.quitSafely()
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 1 && resultCode == RESULT_OK) {
+            val updatedPenon = data?.getSerializableExtra("penon_data") as? Penon
+            if (updatedPenon != null) {
+                penon = updatedPenon
+            }
         }
     }
 }
