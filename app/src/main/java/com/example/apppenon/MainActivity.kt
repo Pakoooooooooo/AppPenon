@@ -6,11 +6,12 @@ import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
-import android.os.Looper
+import android.os.HandlerThread
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -19,9 +20,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var settingsBtn: Button
     private lateinit var tvStatus: TextView
     private lateinit var tvReceivedData: TextView
     private lateinit var tvParsedData: TextView
@@ -33,31 +36,79 @@ class MainActivity : AppCompatActivity() {
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private var bluetoothLeScanner: BluetoothLeScanner? = null
     private var isScanning = false
-    private val handler = Handler(Looper.getMainLooper())
+
+    // Thread dédié pour le traitement BLE
+    private val bleHandlerThread = HandlerThread("BLEThread").apply { start() }
+    private val bleHandler = Handler(bleHandlerThread.looper)
+    private val uiHandler = Handler(android.os.Looper.getMainLooper())
 
     private val TARGET_MAC_ADDRESS = "F3:B9:F6:76:07:8F"
     private var frameCount = 0
-    private var lastFrameCnt = -1L // Pour détecter les trames perdues
+    private var lastFrameCnt = -1L
+    private var lostPackets = 0
+
+    // File pour traiter les paquets de manière asynchrone
+    private val packetQueue = ConcurrentLinkedQueue<ScanResult>()
+    private var isProcessing = false
 
     private val PERMISSION_REQUEST_CODE = 100
     private val TAG = "eTT-SAIL-BLE"
 
     private val bleScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            if (ActivityCompat.checkSelfPermission(
-                    this@MainActivity,
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                        Manifest.permission.BLUETOOTH_CONNECT
-                    else
-                        Manifest.permission.BLUETOOTH
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return
-            }
-
+            // Traitement minimal dans le callback pour éviter de bloquer
             val device = result.device
-
             if (device.address.equals(TARGET_MAC_ADDRESS, ignoreCase = true)) {
+                // Ajouter à la file pour traitement asynchrone
+                packetQueue.offer(result)
+                processNextPacket()
+            }
+        }
+
+        override fun onBatchScanResults(results: MutableList<ScanResult>) {
+            // Traiter les résultats batch pour améliorer la réception
+            results.forEach { result ->
+                val device = result.device
+                if (device.address.equals(TARGET_MAC_ADDRESS, ignoreCase = true)) {
+                    packetQueue.offer(result)
+                }
+            }
+            processNextPacket()
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            uiHandler.post {
+                tvStatus.text = "Échec du scan BLE: $errorCode"
+                Toast.makeText(
+                    this@MainActivity,
+                    "Échec du scan BLE: $errorCode",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun processNextPacket() {
+        if (isProcessing) return
+
+        bleHandler.post {
+            isProcessing = true
+
+            while (packetQueue.isNotEmpty()) {
+                val result = packetQueue.poll() ?: break
+
+                if (ActivityCompat.checkSelfPermission(
+                        this@MainActivity,
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        else
+                            Manifest.permission.BLUETOOTH
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    isProcessing = false
+                    return@post
+                }
+
                 val rssi = result.rssi
                 val scanRecord = result.scanRecord
 
@@ -68,42 +119,34 @@ class MainActivity : AppCompatActivity() {
                     if (manufacturerData != null && manufacturerData.isNotEmpty()) {
                         frameCount++
 
-                        handler.post {
-                            val hexData = manufacturerData.joinToString(" ") {
-                                "%02X".format(it)
-                            }
+                        val hexData = manufacturerData.joinToString(" ") {
+                            "%02X".format(it)
+                        }
 
-                            // LOG DE DEBUG COMPLET
-                            Log.d(TAG, "=== TRAME #$frameCount ===")
-                            Log.d(TAG, "Taille: ${manufacturerData.size} octets")
-                            Log.d(TAG, "HEX: $hexData")
-                            Log.d(TAG, "RSSI: $rssi dBm")
+                        Log.d(TAG, "=== TRAME #$frameCount ===")
+                        Log.d(TAG, "Taille: ${manufacturerData.size} octets")
+                        Log.d(TAG, "HEX: $hexData")
+                        Log.d(TAG, "RSSI: $rssi dBm")
 
+                        val parsedData = parseETTSailData(manufacturerData)
+
+                        uiHandler.post {
                             val currentText = tvReceivedData.text.toString()
                             val newText = "$currentText\n[Trame $frameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
                             tvReceivedData.text = newText
 
-                            val parsedData = parseETTSailData(manufacturerData)
                             tvParsedData.text = parsedData
 
-                            tvStatus.text = "✓ Réception en cours (${frameCount} trames)"
+                            val lostInfo = if (lostPackets > 0) " ($lostPackets perdus)" else ""
+                            tvStatus.text = "✓ Réception en cours (${frameCount} trames)$lostInfo"
 
                             autoScroll()
                         }
                     }
                 }
             }
-        }
 
-        override fun onScanFailed(errorCode: Int) {
-            handler.post {
-                tvStatus.text = "Échec du scan BLE: $errorCode"
-                Toast.makeText(
-                    this@MainActivity,
-                    "Échec du scan BLE: $errorCode",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            isProcessing = false
         }
     }
 
@@ -118,6 +161,11 @@ class MainActivity : AppCompatActivity() {
         btnStopScan = findViewById(R.id.btnStopScan)
         btnClearData = findViewById(R.id.btnClearData)
         tvTargetMac = findViewById(R.id.tvTargetMac)
+
+        settingsBtn = findViewById(R.id.settingsBtn)
+        settingsBtn.setOnClickListener {
+            startActivity(Intent(this, PenonsSettingsActivity::class.java))
+        }
 
         tvTargetMac.text = "Appareil eTT-SAIL: $TARGET_MAC_ADDRESS"
 
@@ -144,6 +192,7 @@ class MainActivity : AppCompatActivity() {
             tvParsedData.text = "En attente de données..."
             frameCount = 0
             lastFrameCnt = -1
+            lostPackets = 0
         }
 
         updateUIState()
@@ -193,28 +242,37 @@ class MainActivity : AppCompatActivity() {
 
         frameCount = 0
         lastFrameCnt = -1
+        lostPackets = 0
+        packetQueue.clear()
         tvReceivedData.text = "=== ÉCOUTE DE $TARGET_MAC_ADDRESS ===\n"
         tvParsedData.text = "En attente de données..."
         isScanning = true
         updateUIState()
 
+        // Paramètres optimisés pour capturer un maximum de paquets
         val scanSettings = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-                .setLegacy(false)
-                .setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY) // Priorité max à la latence
+                .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES) // Tous les résultats
+                .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE) // Mode agressif
+                .setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT) // Max d'advertisements
+                .setReportDelay(0L) // Rapport immédiat (pas de batch)
+                .setLegacy(false) // Support BLE 5.0+
+                .setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED) // Tous les PHY
                 .build()
         } else {
             ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+                .setReportDelay(0L)
                 .build()
         }
 
         bluetoothLeScanner?.startScan(null, scanSettings, bleScanCallback)
 
-        tvStatus.text = "Écoute des advertising packets..."
+        tvStatus.text = "Écoute optimisée des advertising packets..."
 
-        Toast.makeText(this, "Scan BLE démarré (Coded PHY)", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Scan BLE démarré (mode optimisé)", Toast.LENGTH_SHORT).show()
     }
 
     private fun stopScanning() {
@@ -234,12 +292,11 @@ class MainActivity : AppCompatActivity() {
         isScanning = false
         updateUIState()
 
-        tvStatus.text = "Scan arrêté - $frameCount trames reçues"
+        tvStatus.text = "Scan arrêté - $frameCount trames reçues ($lostPackets perdus)"
     }
 
     private fun parseETTSailData(data: ByteArray): String {
         return try {
-            // LOG: Afficher les données brutes complètes
             val fullHex = data.joinToString(" ") { "%02X".format(it) }
             Log.d(TAG, "Données complètes: $fullHex")
 
@@ -258,7 +315,6 @@ class MainActivity : AppCompatActivity() {
 
                 Log.d(TAG, "Offset $offset: length=$length, type=0x${"%02X".format(type)}")
 
-                // Type 0xFF = Manufacturer Specific Data
                 if (type == 0xFF) {
                     dataStartOffset = offset + 2
                     manufacturerData = data.copyOfRange(offset + 2, minOf(offset + 1 + length, data.size))
@@ -270,7 +326,6 @@ class MainActivity : AppCompatActivity() {
                 offset += length + 1
             }
 
-            // Si pas de structure AD, utiliser les données brutes
             if (!foundManufacturerData) {
                 Log.d(TAG, "Pas de structure AD détectée, utilisation données brutes")
             }
@@ -284,21 +339,16 @@ class MainActivity : AppCompatActivity() {
                         "HEX: $dataHex"
             }
 
-            // TESTER DIFFÉRENTS OFFSETS ET ENDIANNESS
             val results = mutableListOf<String>()
 
-            // Test 1: Sans offset, Little Endian
             results.add(testDecode(manufacturerData, 0, ByteOrder.LITTLE_ENDIAN, "Sans offset, LE"))
 
-            // Test 2: Avec 2 octets offset (Company ID), Little Endian
             if (manufacturerData.size >= 19) {
                 results.add(testDecode(manufacturerData, 2, ByteOrder.LITTLE_ENDIAN, "Offset +2, LE"))
             }
 
-            // Test 3: Sans offset, Big Endian
             results.add(testDecode(manufacturerData, 0, ByteOrder.BIG_ENDIAN, "Sans offset, BE"))
 
-            // Test 4: Avec 2 octets offset, Big Endian
             if (manufacturerData.size >= 19) {
                 results.add(testDecode(manufacturerData, 2, ByteOrder.BIG_ENDIAN, "Offset +2, BE"))
             }
@@ -339,19 +389,19 @@ class MainActivity : AppCompatActivity() {
             val sdAcc = buffer.short.toInt()
             val maxAcc = buffer.short.toInt()
 
-            // LOG DÉTAILLÉ
             Log.d(TAG, "[$label] frameCnt=$frameCnt, type=$frameType, vbat=$vbat")
 
-            // Vérifier si c'est cohérent
             val vbatV = vbat / 1000.0
             val isCoherent = frameCnt in 0..100000000 &&
                     vbatV in 2.0..4.5 &&
                     frameType in 0..255
 
-            // Détection de trames perdues
             val lostFrames = if (lastFrameCnt >= 0 && frameCnt > lastFrameCnt) {
                 val lost = frameCnt - lastFrameCnt - 1
-                if (lost > 0) " ⚠️ $lost trame(s) perdue(s)" else ""
+                if (lost > 0) {
+                    lostPackets += lost.toInt()
+                    " ⚠️ $lost trame(s) perdue(s)"
+                } else ""
             } else ""
 
             if (isCoherent && lastFrameCnt < frameCnt) {
@@ -390,6 +440,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         try {
             stopScanning()
+            bleHandlerThread.quitSafely()
         } catch (e: Exception) {
             e.printStackTrace()
         }
