@@ -14,7 +14,6 @@ class MainActivity : AppCompatActivity() {
 
     /* ===== PARAMÈTRES CONFIGURABLES ===== */
     private val windowSize = 10               // nombre de valeurs pour la moyenne glissante (10 sec)
-    private val Attach = 100                // seuil pour attaché
     private val simInterval = 1000L           // intervalle de simulation en ms (1Hz)
     private val fakeDevices = listOf(
         "Babord" to "AA:BB:CC:DD:EE:01",
@@ -59,6 +58,7 @@ class MainActivity : AppCompatActivity() {
         sDFlowState = true,
         sDFlowStateLow = 100,
         sDFlowStateHigh = 800,
+        detachedThresh = 100.0
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity() {
 
                     // Génération d'une valeur aléatoire 0-200
                     val value = Random.nextInt(0, 201)
-                    val turbulent = value < Attach
+                    val turbulent = value < penon.detachedThresh
                     val hexFrame = generateHexFrame(value, turbulent)
 
                     // Comptage séparé
@@ -151,8 +151,8 @@ class MainActivity : AppCompatActivity() {
                     val avgBabord = if (babordValues.isNotEmpty()) babordValues.average() else 0.0
                     val avgTribord = if (tribordValues.isNotEmpty()) tribordValues.average() else 0.0
 
-                    val etatBabord = if (avgBabord >= Attach) "Attaché 🟢" else "Turbulent 🔴"
-                    val etatTribord = if (avgTribord >= Attach) "Attaché 🟢" else "Turbulent 🔴"
+                    val etatBabord = if (avgBabord >= penon.detachedThresh) "Attaché 🟢" else "Turbulent 🔴"
+                    val etatTribord = if (avgTribord >= penon.detachedThresh) "Attaché 🟢" else "Turbulent 🔴"
 
                     val brut = "[$name] $hexFrame"
                     val decode = "Trame ${name.first()}#$frameNumber | $name | Valeur: $value | ${if (turbulent) "Turbulent" else "Attaché"}"

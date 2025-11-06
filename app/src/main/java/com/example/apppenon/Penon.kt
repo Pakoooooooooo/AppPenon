@@ -55,7 +55,7 @@ data class Penon (
     var vbatLow: Double = 2.4,
     var vbatHigh: Double = 2.8,
     var detached: Boolean = false,
-    var detachedTresh: Double = 10.0,
+    var detachedThresh: Double = 10.0,
     var count: Boolean = false,
     var ids: Boolean = false,
     var timeline: Int = 0

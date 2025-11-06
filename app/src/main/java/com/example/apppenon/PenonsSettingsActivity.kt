@@ -107,7 +107,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         switchMaxAcc.isChecked = penon.maxAcc
         switchVbat.isChecked = penon.vbat
         switchDetached.isChecked = penon.detached
-        editDetached.setText(penon.detachedTresh.toString())
+        editDetached.setText(penon.detachedThresh.toString())
         switchCount.isChecked = penon.count
         switchIDs.isChecked = penon.ids
 
@@ -135,7 +135,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         var waitSwitchMaxAcc = penon.maxAcc
         var waitSwitchVbat = penon.vbat
         var waitSwitchDetached = penon.detached
-        var waitEditDetached = penon.detachedTresh
+        var waitEditDetached = penon.detachedThresh
         var waitSwitchCount = penon.count
         var waitSwitchIDs = penon.ids
         var waitSwitchTimeline = penon.timeline
@@ -201,7 +201,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
             penon.maxAcc = waitSwitchMaxAcc
             penon.vbat = waitSwitchVbat
             penon.detached = waitSwitchDetached
-            penon.detachedTresh = editDetached.text.toString().toDouble()
+            penon.detachedThresh = editDetached.text.toString().toDouble()
             penon.count = waitSwitchCount
             penon.ids = waitSwitchIDs
             penon.timeline = waitSwitchTimeline
