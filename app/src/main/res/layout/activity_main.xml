@@ -42,6 +42,7 @@
         android:layout_marginBottom="12dp" />
 
     <!-- Boutons de contrôle -->
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -76,31 +77,6 @@
     </LinearLayout>
 
     <!-- Données décodées (partie supérieure) -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="📊 Données décodées :"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="4dp" />
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1.2"
-        android:background="#FFFFFF"
-        android:padding="8dp"
-        android:layout_marginBottom="12dp">
-
-        <TextView
-            android:id="@+id/tvParsedData"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="En attente de données..."
-            android:textSize="13sp"
-            android:fontFamily="monospace"
-            android:textColor="#000000" />
-    </ScrollView>
 
     <!-- Etats des pennons -->
     <LinearLayout
@@ -109,26 +85,53 @@
         android:orientation="vertical"
         android:layout_marginBottom="12dp">
 
-        <TextView
-            android:id="@+id/tvEtatBabord"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Babord : ⏳ En attente..."
-            android:textSize="15sp"
-            android:padding="6dp"
-            android:background="#FFF3E0"
-            android:textColor="#E65100"
-            android:layout_marginBottom="6dp"/>
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/tvEtatPenon1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Babord : ⏳ En attente..."
+                android:textSize="15sp"
+                android:padding="6dp"
+                android:background="#FFF3E0"
+                android:textColor="#E65100"
+                android:layout_weight="2"/>
 
-        <TextView
-            android:id="@+id/tvEtatTribord"
+            <Button
+                android:id="@+id/btnParamPenon1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Paramettres"
+                android:layout_weight="1"/>
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Tribord : ⏳ En attente..."
-            android:textSize="15sp"
-            android:padding="6dp"
-            android:background="#E8F5E9"
-            android:textColor="#1B5E20"/>
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/tvEtatPenon2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tribord : ⏳ En attente..."
+                android:textSize="15sp"
+                android:padding="6dp"
+                android:background="#E8F5E9"
+                android:textColor="#1B5E20"
+                android:layout_weight="2"/>
+
+            <Button
+                android:id="@+id/btnParamPenon2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Paramettres"
+                android:layout_weight="1"/>
+        </LinearLayout>
+
+
     </LinearLayout>
 
     <!-- Séparateur -->
@@ -164,11 +167,5 @@
             android:fontFamily="monospace"
             android:textColor="#000000" />
     </ScrollView>
-
-    <Button
-        android:id="@+id/settingsBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Paramétrage" />
 
 </LinearLayout>

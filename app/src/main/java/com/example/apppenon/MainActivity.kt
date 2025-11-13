@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import kotlin.random.Random
 import android.content.Intent
+import androidx.activity.result.contract.ActivityResultContracts
 import com.example.apppenon.Penon
 
 class MainActivity : AppCompatActivity() {
@@ -16,9 +17,9 @@ class MainActivity : AppCompatActivity() {
     /* ===== PARAMÈTRES CONFIGURABLES ===== */
     private val windowSize = 10               // nombre de valeurs pour la moyenne glissante (10 sec)
     private val simInterval = 1000L           // intervalle de simulation en ms (1Hz)
-    private var fakeDevices = listOf(
+    private var fakeDevices = mutableListOf(
         Penon(
-            penonName = "Babord",
+            penonName = "Penon1 (Babord)",
             macAdress = "AA:BB:CC:DD:EE:01",
             rssi = true,
             rssiLow = -90,
@@ -32,7 +33,7 @@ class MainActivity : AppCompatActivity() {
             detachedThresh = 100.0
             ),
         Penon(
-            penonName = "Tribord",
+            penonName = "Penon2 (Tribord)",
             macAdress = "AA:BB:CC:DD:EE:02",
             rssi = true,
             rssiLow = -90,
@@ -50,13 +51,13 @@ class MainActivity : AppCompatActivity() {
     /* ===== CODE COMMUN (UI + affichage) ===== */
     private lateinit var tvStatus: TextView
     private lateinit var tvReceivedData: TextView
-    private lateinit var tvParsedData: TextView
-    private lateinit var tvEtatBabord: TextView
-    private lateinit var tvEtatTribord: TextView
+    private lateinit var tvEtatPenon1: TextView
+    private lateinit var tvEtatPenon2: TextView
     private lateinit var btnStart: Button
     private lateinit var btnStop: Button
     private lateinit var btnClear: Button
-    private lateinit var settingsBtn: Button
+    private lateinit var Penon1SettingsBtn: Button
+    private lateinit var Penon2SettingsBtn: Button
 
     private var isRunning = false
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -69,6 +70,36 @@ class MainActivity : AppCompatActivity() {
     private val babordValues = mutableListOf<Int>()
     private val tribordValues = mutableListOf<Int>()
 
+    private val penonSettingsLauncher1 = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val updatedPenon = result.data?.getSerializableExtra("updated_penon") as? Penon
+            if (updatedPenon != null) {
+                fakeDevices[0] = updatedPenon
+                println("updatedPenon: $updatedPenon")
+                tvEtatPenon1.text = "${updatedPenon.penonName} : ✅ Mis à jour"
+            }
+        } else {
+            tvEtatPenon1.text = "${fakeDevices[0].penonName} : ❌ Annulé"
+        }
+    }
+
+    private val penonSettingsLauncher2 = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val updatedPenon = result.data?.getSerializableExtra("updated_penon") as? Penon
+            if (updatedPenon != null) {
+                fakeDevices[1] = updatedPenon
+                println("updatedPenon: $updatedPenon")
+                tvEtatPenon2.text = "${updatedPenon.penonName} : ✅ Mis à jour"
+            }
+        } else {
+            tvEtatPenon2.text = "${fakeDevices[1].penonName} : ❌ Annulé"
+        }
+    }
+
 
     /* ===== CODE SIMULATION ===== */
     private val simulationHandler = Handler(Looper.getMainLooper())
@@ -80,29 +111,37 @@ class MainActivity : AppCompatActivity() {
         // Bind UI
         tvStatus = findViewById(R.id.tvStatus)
         tvReceivedData = findViewById(R.id.tvReceivedData)
-        tvParsedData = findViewById(R.id.tvParsedData)
-        tvEtatBabord = findViewById(R.id.tvEtatBabord)
-        tvEtatTribord = findViewById(R.id.tvEtatTribord)
+        tvEtatPenon1 = findViewById(R.id.tvEtatPenon1)
+        tvEtatPenon2 = findViewById(R.id.tvEtatPenon2)
         btnStart = findViewById(R.id.btnStartScan)
         btnStop = findViewById(R.id.btnStopScan)
         btnClear = findViewById(R.id.btnClearData)
 
-        settingsBtn = findViewById(R.id.settingsBtn)
+        Penon1SettingsBtn = findViewById(R.id.btnParamPenon1)
+        Penon2SettingsBtn = findViewById(R.id.btnParamPenon2)
+        tvEtatPenon1.text = fakeDevices[0].penonName+" : ⏳ En attente..."
+        tvEtatPenon2.text = fakeDevices[1].penonName+" : ⏳ En attente..."
 
-        settingsBtn.setOnClickListener {
+        Penon1SettingsBtn.setOnClickListener {
             val intent = Intent(this, PenonsSettingsActivity::class.java)
             intent.putExtra("penon_data", fakeDevices[0])
-            startActivityForResult(intent, 1)
+            penonSettingsLauncher1.launch(intent)
+            tvEtatPenon1.text = fakeDevices[0].penonName + " : ⏳ En attente..."
         }
 
+        Penon2SettingsBtn.setOnClickListener {
+            val intent = Intent(this, PenonsSettingsActivity::class.java)
+            intent.putExtra("penon_data", fakeDevices[1])
+            penonSettingsLauncher2.launch(intent)
+            tvEtatPenon2.text = fakeDevices[2].penonName + " : ⏳ En attente..."
+        }
 
         btnStart.setOnClickListener { startSimulation() }
         btnStop.setOnClickListener { stopSimulation() }
         btnClear.setOnClickListener {
             tvReceivedData.text = ""
-            tvParsedData.text = ""
-            tvEtatBabord.text = fakeDevices[0].penonName+" : ⏳ En attente..."
-            tvEtatTribord.text = fakeDevices[1].penonName+" : ⏳ En attente..."
+            tvEtatPenon1.text = fakeDevices[0].penonName+" : ⏳ En attente..."
+            tvEtatPenon2.text = fakeDevices[1].penonName+" : ⏳ En attente..."
             frameBabord = 0
             frameTribord = 0
             babordValues.clear()
@@ -135,7 +174,6 @@ class MainActivity : AppCompatActivity() {
         updateUI()
         tvStatus.text = "Simulation 1Hz…"
         tvReceivedData.text = ""  // Supprime "En attente..."
-        tvParsedData.text = ""
 
         simulationHandler.post(object : Runnable {
             override fun run() {
@@ -167,13 +205,11 @@ class MainActivity : AppCompatActivity() {
                     val etatTribord = if (avgTribord >= fakeDevices[0].detachedThresh) "Attaché 🟢" else "Turbulent 🔴"
 
                     val brut = "[$name] $hexFrame"
-                    val decode = "Trame ${name.first()}#$frameNumber | $name | Valeur: $value | ${if (turbulent) "Turbulent" else "Attaché"}"
 
                     uiHandler.post {
                         tvReceivedData.append("$brut\n")
-                        tvParsedData.append("$decode\n")
-                        tvEtatBabord.text = "Babord : $etatBabord"
-                        tvEtatTribord.text = "Tribord : $etatTribord"
+                        tvEtatPenon1.text = "Babord : $etatBabord"
+                        tvEtatPenon2.text = "Tribord : $etatTribord"
                         tvStatus.text = "B:$frameBabord  T:$frameTribord"
                         autoScroll()
                     }
