@@ -27,20 +27,25 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
 
     private lateinit var tvStatus: TextView
-    private lateinit var tvReceivedData: TextView
-    private lateinit var tvParsedData: TextView
+    private lateinit var tvReceivedData1: TextView
+    private lateinit var tvReceivedData2: TextView
+    private lateinit var tvParsedData1: TextView
+    private lateinit var tvParsedData2: TextView
     private lateinit var btnStartScan: Button
     private lateinit var btnStopScan: Button
     private lateinit var btnClearData: Button
-    private lateinit var tvTargetMac: TextView
     private lateinit var etFileName: android.widget.EditText
+    private lateinit var inputMacP1: android.widget.EditText
+    private lateinit var inputMacP2: android.widget.EditText
+
 
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private var bluetoothLeScanner: BluetoothLeScanner? = null
     private var isScanning = false
     private val handler = Handler(Looper.getMainLooper())
 
-    private val TARGET_MAC_ADDRESS = "DF:92:AC:16:EE:16"
+    private lateinit var TARGET_MAC_ADDRESS1: String
+    private lateinit var TARGET_MAC_ADDRESS2: String
     private var frameCount = 0
     private var lastFrameCnt = -1L
 
@@ -67,7 +72,7 @@ class MainActivity : AppCompatActivity() {
 
             val device = result.device
 
-            if (device.address.equals(TARGET_MAC_ADDRESS, ignoreCase = true)) {
+            if (device.address.equals(TARGET_MAC_ADDRESS1, ignoreCase = true)) {
                 val rssi = result.rssi
                 val scanRecord = result.scanRecord
 
@@ -93,12 +98,53 @@ class MainActivity : AppCompatActivity() {
                             Log.d(TAG, "HEX: $hexData")
                             Log.d(TAG, "RSSI: $rssi dBm")
 
-                            val currentText = tvReceivedData.text.toString()
-                            val newText = "$currentText\n[Trame $frameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
-                            tvReceivedData.text = newText
+                            val currentText1 = tvReceivedData1.text.toString()
+                            val newText1 = "$currentText1\n[Trame $frameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
+                            tvReceivedData1.text = newText1
 
                             val parsedData = parseETTSailData(manufacturerData)
-                            tvParsedData.text = parsedData
+                            tvParsedData1.text = parsedData
+
+                            val recordingStatus = if (isRecording) "📝" else ""
+                            tvStatus.text = "$recordingStatus✓ Réception en cours (${frameCount} trames)"
+
+                            autoScroll()
+                        }
+                    }
+                }
+            }
+            else if (device.address.equals(TARGET_MAC_ADDRESS2, ignoreCase = true)) {
+                val rssi = result.rssi
+                val scanRecord = result.scanRecord
+
+                if (scanRecord != null) {
+                    val manufacturerData = scanRecord.getManufacturerSpecificData(0xFFFF)
+                        ?: scanRecord.bytes
+
+                    if (manufacturerData != null && manufacturerData.isNotEmpty()) {
+                        frameCount++
+
+                        // Enregistrer dans le CSV
+                        if (isRecording) {
+                            saveToCSV(manufacturerData, rssi)
+                        }
+
+                        handler.post {
+                            val hexData = manufacturerData.joinToString(" ") {
+                                "%02X".format(it)
+                            }
+
+                            Log.d(TAG, "=== TRAME #$frameCount ===")
+                            Log.d(TAG, "Taille: ${manufacturerData.size} octets")
+                            Log.d(TAG, "HEX: $hexData")
+                            Log.d(TAG, "RSSI: $rssi dBm")
+
+                            val currentText2 = tvReceivedData2.text.toString()
+                            val newText2 = "$currentText2\n[Trame $frameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
+                            tvReceivedData2.text = newText2
+
+                            val parsedData = parseETTSailData(manufacturerData)
+                            tvParsedData2.text = parsedData
 
                             val recordingStatus = if (isRecording) "📝" else ""
                             tvStatus.text = "$recordingStatus✓ Réception en cours (${frameCount} trames)"
@@ -127,15 +173,17 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         tvStatus = findViewById(R.id.tvStatus)
-        tvReceivedData = findViewById(R.id.tvReceivedData)
-        tvParsedData = findViewById(R.id.tvParsedData)
+        tvReceivedData1 = findViewById(R.id.tvReceivedData1)
+        tvReceivedData2 = findViewById(R.id.tvReceivedData2)
+        tvParsedData1 = findViewById(R.id.tvParsedData1)
+        tvParsedData2 = findViewById(R.id.tvParsedData2)
         btnStartScan = findViewById(R.id.btnStartScan)
         btnStopScan = findViewById(R.id.btnStopScan)
         btnClearData = findViewById(R.id.btnClearData)
-        tvTargetMac = findViewById(R.id.tvTargetMac)
         etFileName = findViewById(R.id.etFileName)
+        inputMacP1 = findViewById(R.id.inputMacP1)
+        inputMacP2 = findViewById(R.id.inputMacP2)
 
-        tvTargetMac.text = "Appareil eTT-SAIL: $TARGET_MAC_ADDRESS"
 
         if (bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth non disponible", Toast.LENGTH_LONG).show()
@@ -148,6 +196,8 @@ class MainActivity : AppCompatActivity() {
         requestBluetoothPermissions()
 
         btnStartScan.setOnClickListener {
+            TARGET_MAC_ADDRESS1 = inputMacP1.text.toString()
+            TARGET_MAC_ADDRESS2 = inputMacP2.text.toString()
             startScanning()
         }
 
@@ -156,8 +206,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnClearData.setOnClickListener {
-            tvReceivedData.text = ""
-            tvParsedData.text = "En attente de données..."
+            tvReceivedData1.text = ""
+            tvParsedData1.text = "En attente de données..."
+            tvReceivedData2.text = ""
+            tvParsedData2.text = "En attente de données..."
             frameCount = 0
             lastFrameCnt = -1
         }
@@ -213,8 +265,10 @@ class MainActivity : AppCompatActivity() {
 
         frameCount = 0
         lastFrameCnt = -1
-        tvReceivedData.text = "=== ÉCOUTE DE $TARGET_MAC_ADDRESS ===\n"
-        tvParsedData.text = "En attente de données..."
+        tvReceivedData1.text = "=== ÉCOUTE DE $TARGET_MAC_ADDRESS1 ===\n"
+        tvReceivedData2.text = "=== ÉCOUTE DE $TARGET_MAC_ADDRESS2 ===\n"
+        tvParsedData1.text = "En attente de données..."
+        tvParsedData2.text = "En attente de données..."
         isScanning = true
 
         // Créer un nouveau fichier CSV
@@ -498,9 +552,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun autoScroll() {
-        val scrollView = findViewById<android.widget.ScrollView>(R.id.scrollView)
-        scrollView?.post {
-            scrollView.fullScroll(android.view.View.FOCUS_DOWN)
+        val scrollView1 = findViewById<android.widget.ScrollView>(R.id.scrollView1)
+        scrollView1?.post {
+            scrollView1.fullScroll(android.view.View.FOCUS_DOWN)
+        }
+        val scrollView2 = findViewById<android.widget.ScrollView>(R.id.scrollView2)
+        scrollView2?.post {
+            scrollView2.fullScroll(android.view.View.FOCUS_DOWN)
         }
     }
 
