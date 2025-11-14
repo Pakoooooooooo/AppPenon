@@ -38,7 +38,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var inputMacP1: android.widget.EditText
     private lateinit var inputMacP2: android.widget.EditText
 
-
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private var bluetoothLeScanner: BluetoothLeScanner? = null
     private var isScanning = false
@@ -46,15 +45,21 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var TARGET_MAC_ADDRESS1: String
     private lateinit var TARGET_MAC_ADDRESS2: String
-    private var frameCount = 0
-    private var lastFrameCnt = -1L
+
+    // Compteurs séparés pour chaque penon
+    private var frameCount1 = 0
+    private var frameCount2 = 0
+    private var lastFrameCnt1 = -1L
+    private var lastFrameCnt2 = -1L
 
     private val PERMISSION_REQUEST_CODE = 100
     private val TAG = "eTT-SAIL-BLE"
 
-    // Variables pour l'enregistrement CSV
-    private var csvFile: File? = null
-    private var csvWriter: FileWriter? = null
+    // Variables pour l'enregistrement CSV - un fichier par penon
+    private var csvFile1: File? = null
+    private var csvWriter1: FileWriter? = null
+    private var csvFile2: File? = null
+    private var csvWriter2: FileWriter? = null
     private var isRecording = false
 
     private val bleScanCallback = object : ScanCallback() {
@@ -71,88 +76,15 @@ class MainActivity : AppCompatActivity() {
             }
 
             val device = result.device
+            val deviceAddress = device.address
 
-            if (device.address.equals(TARGET_MAC_ADDRESS1, ignoreCase = true)) {
-                val rssi = result.rssi
-                val scanRecord = result.scanRecord
-
-                if (scanRecord != null) {
-                    val manufacturerData = scanRecord.getManufacturerSpecificData(0xFFFF)
-                        ?: scanRecord.bytes
-
-                    if (manufacturerData != null && manufacturerData.isNotEmpty()) {
-                        frameCount++
-
-                        // Enregistrer dans le CSV
-                        if (isRecording) {
-                            saveToCSV(manufacturerData, rssi)
-                        }
-
-                        handler.post {
-                            val hexData = manufacturerData.joinToString(" ") {
-                                "%02X".format(it)
-                            }
-
-                            Log.d(TAG, "=== TRAME #$frameCount ===")
-                            Log.d(TAG, "Taille: ${manufacturerData.size} octets")
-                            Log.d(TAG, "HEX: $hexData")
-                            Log.d(TAG, "RSSI: $rssi dBm")
-
-                            val currentText1 = tvReceivedData1.text.toString()
-                            val newText1 = "$currentText1\n[Trame $frameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
-                            tvReceivedData1.text = newText1
-
-                            val parsedData = parseETTSailData(manufacturerData)
-                            tvParsedData1.text = parsedData
-
-                            val recordingStatus = if (isRecording) "📝" else ""
-                            tvStatus.text = "$recordingStatus✓ Réception en cours (${frameCount} trames)"
-
-                            autoScroll()
-                        }
-                    }
-                }
+            // Traitement pour Penon 1
+            if (deviceAddress.equals(TARGET_MAC_ADDRESS1, ignoreCase = true)) {
+                handlePenonData(result, 1)
             }
-            else if (device.address.equals(TARGET_MAC_ADDRESS2, ignoreCase = true)) {
-                val rssi = result.rssi
-                val scanRecord = result.scanRecord
-
-                if (scanRecord != null) {
-                    val manufacturerData = scanRecord.getManufacturerSpecificData(0xFFFF)
-                        ?: scanRecord.bytes
-
-                    if (manufacturerData != null && manufacturerData.isNotEmpty()) {
-                        frameCount++
-
-                        // Enregistrer dans le CSV
-                        if (isRecording) {
-                            saveToCSV(manufacturerData, rssi)
-                        }
-
-                        handler.post {
-                            val hexData = manufacturerData.joinToString(" ") {
-                                "%02X".format(it)
-                            }
-
-                            Log.d(TAG, "=== TRAME #$frameCount ===")
-                            Log.d(TAG, "Taille: ${manufacturerData.size} octets")
-                            Log.d(TAG, "HEX: $hexData")
-                            Log.d(TAG, "RSSI: $rssi dBm")
-
-                            val currentText2 = tvReceivedData2.text.toString()
-                            val newText2 = "$currentText2\n[Trame $frameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
-                            tvReceivedData2.text = newText2
-
-                            val parsedData = parseETTSailData(manufacturerData)
-                            tvParsedData2.text = parsedData
-
-                            val recordingStatus = if (isRecording) "📝" else ""
-                            tvStatus.text = "$recordingStatus✓ Réception en cours (${frameCount} trames)"
-
-                            autoScroll()
-                        }
-                    }
-                }
+            // Traitement pour Penon 2
+            else if (deviceAddress.equals(TARGET_MAC_ADDRESS2, ignoreCase = true)) {
+                handlePenonData(result, 2)
             }
         }
 
@@ -164,6 +96,68 @@ class MainActivity : AppCompatActivity() {
                     "Échec du scan BLE: $errorCode",
                     Toast.LENGTH_SHORT
                 ).show()
+            }
+        }
+    }
+
+    private fun handlePenonData(result: ScanResult, penonNumber: Int) {
+        val rssi = result.rssi
+        val scanRecord = result.scanRecord
+
+        if (scanRecord != null) {
+            val manufacturerData = scanRecord.getManufacturerSpecificData(0xFFFF)
+                ?: scanRecord.bytes
+
+            if (manufacturerData != null && manufacturerData.isNotEmpty()) {
+                // Incrémenter le compteur approprié
+                if (penonNumber == 1) {
+                    frameCount1++
+                } else {
+                    frameCount2++
+                }
+
+                val currentFrameCount = if (penonNumber == 1) frameCount1 else frameCount2
+                val macAddress = if (penonNumber == 1) TARGET_MAC_ADDRESS1 else TARGET_MAC_ADDRESS2
+
+                // Enregistrer dans le CSV approprié
+                if (isRecording) {
+                    saveToCSV(manufacturerData, rssi, penonNumber, currentFrameCount, macAddress)
+                }
+
+                handler.post {
+                    val hexData = manufacturerData.joinToString(" ") {
+                        "%02X".format(it)
+                    }
+
+                    Log.d(TAG, "=== PENON $penonNumber - TRAME #$currentFrameCount ===")
+                    Log.d(TAG, "MAC: $macAddress")
+                    Log.d(TAG, "Taille: ${manufacturerData.size} octets")
+                    Log.d(TAG, "HEX: $hexData")
+                    Log.d(TAG, "RSSI: $rssi dBm")
+
+                    // Mettre à jour l'affichage approprié
+                    if (penonNumber == 1) {
+                        val currentText = tvReceivedData1.text.toString()
+                        val newText = "$currentText\n[Trame $currentFrameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
+                        tvReceivedData1.text = newText
+
+                        val parsedData = parseETTSailData(manufacturerData, 1)
+                        tvParsedData1.text = parsedData
+                    } else {
+                        val currentText = tvReceivedData2.text.toString()
+                        val newText = "$currentText\n[Trame $currentFrameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
+                        tvReceivedData2.text = newText
+
+                        val parsedData = parseETTSailData(manufacturerData, 2)
+                        tvParsedData2.text = parsedData
+                    }
+
+                    val recordingStatus = if (isRecording) "📝" else ""
+                    val totalFrames = frameCount1 + frameCount2
+                    tvStatus.text = "$recordingStatus✓ Réception: P1=$frameCount1, P2=$frameCount2 (Total: $totalFrames)"
+
+                    autoScroll()
+                }
             }
         }
     }
@@ -184,7 +178,6 @@ class MainActivity : AppCompatActivity() {
         inputMacP1 = findViewById(R.id.inputMacP1)
         inputMacP2 = findViewById(R.id.inputMacP2)
 
-
         if (bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth non disponible", Toast.LENGTH_LONG).show()
             finish()
@@ -196,8 +189,14 @@ class MainActivity : AppCompatActivity() {
         requestBluetoothPermissions()
 
         btnStartScan.setOnClickListener {
-            TARGET_MAC_ADDRESS1 = inputMacP1.text.toString()
-            TARGET_MAC_ADDRESS2 = inputMacP2.text.toString()
+            TARGET_MAC_ADDRESS1 = inputMacP1.text.toString().trim()
+            TARGET_MAC_ADDRESS2 = inputMacP2.text.toString().trim()
+
+            if (TARGET_MAC_ADDRESS1.isEmpty() && TARGET_MAC_ADDRESS2.isEmpty()) {
+                Toast.makeText(this, "Veuillez entrer au moins une adresse MAC", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             startScanning()
         }
 
@@ -210,8 +209,10 @@ class MainActivity : AppCompatActivity() {
             tvParsedData1.text = "En attente de données..."
             tvReceivedData2.text = ""
             tvParsedData2.text = "En attente de données..."
-            frameCount = 0
-            lastFrameCnt = -1
+            frameCount1 = 0
+            frameCount2 = 0
+            lastFrameCnt1 = -1
+            lastFrameCnt2 = -1
         }
 
         updateUIState()
@@ -263,16 +264,29 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        frameCount = 0
-        lastFrameCnt = -1
-        tvReceivedData1.text = "=== ÉCOUTE DE $TARGET_MAC_ADDRESS1 ===\n"
-        tvReceivedData2.text = "=== ÉCOUTE DE $TARGET_MAC_ADDRESS2 ===\n"
+        frameCount1 = 0
+        frameCount2 = 0
+        lastFrameCnt1 = -1
+        lastFrameCnt2 = -1
+
+        tvReceivedData1.text = if (TARGET_MAC_ADDRESS1.isNotEmpty()) {
+            "=== ÉCOUTE PENON 1: $TARGET_MAC_ADDRESS1 ===\n"
+        } else {
+            "=== PENON 1: Non configuré ===\n"
+        }
+
+        tvReceivedData2.text = if (TARGET_MAC_ADDRESS2.isNotEmpty()) {
+            "=== ÉCOUTE PENON 2: $TARGET_MAC_ADDRESS2 ===\n"
+        } else {
+            "=== PENON 2: Non configuré ===\n"
+        }
+
         tvParsedData1.text = "En attente de données..."
         tvParsedData2.text = "En attente de données..."
         isScanning = true
 
-        // Créer un nouveau fichier CSV
-        createCSVFile()
+        // Créer les fichiers CSV
+        createCSVFiles()
 
         updateUIState()
 
@@ -290,7 +304,12 @@ class MainActivity : AppCompatActivity() {
 
         bluetoothLeScanner?.startScan(null, scanSettings, bleScanCallback)
 
-        tvStatus.text = "📝 Écoute et enregistrement..."
+        val listeningMsg = buildString {
+            append("📝 Écoute: ")
+            if (TARGET_MAC_ADDRESS1.isNotEmpty()) append("P1 ")
+            if (TARGET_MAC_ADDRESS2.isNotEmpty()) append("P2 ")
+        }
+        tvStatus.text = listeningMsg
 
         Toast.makeText(this, "Scan BLE démarré - Enregistrement CSV actif", Toast.LENGTH_SHORT).show()
     }
@@ -311,125 +330,169 @@ class MainActivity : AppCompatActivity() {
 
         isScanning = false
 
-        // Fermer le fichier CSV
-        closeCSVFile()
+        // Fermer les fichiers CSV
+        closeCSVFiles()
 
         updateUIState()
 
-        val csvPath = csvFile?.absolutePath ?: "inconnu"
-        tvStatus.text = "Scan arrêté - $frameCount trames reçues\nFichier: $csvPath"
+        val totalFrames = frameCount1 + frameCount2
+        val statusMsg = buildString {
+            appendLine("Scan arrêté - P1: $frameCount1, P2: $frameCount2 (Total: $totalFrames)")
+            if (csvFile1 != null) {
+                appendLine("Fichier P1: ${csvFile1?.name}")
+            }
+            if (csvFile2 != null) {
+                appendLine("Fichier P2: ${csvFile2?.name}")
+            }
+        }
+        tvStatus.text = statusMsg
 
-        Toast.makeText(this, "Données enregistrées dans:\n$csvPath", Toast.LENGTH_LONG).show()
+        val toastMsg = buildString {
+            appendLine("Données enregistrées:")
+            if (csvFile1 != null) {
+                appendLine("P1: ${csvFile1?.absolutePath}")
+            }
+            if (csvFile2 != null) {
+                appendLine("P2: ${csvFile2?.absolutePath}")
+            }
+        }
+        Toast.makeText(this, toastMsg, Toast.LENGTH_LONG).show()
     }
 
-    private fun createCSVFile() {
+    private fun createCSVFiles() {
         try {
-            // Utiliser le dossier Documents public
             val documentsDir = android.os.Environment.getExternalStoragePublicDirectory(
                 android.os.Environment.DIRECTORY_DOCUMENTS
             )
 
-            // Créer un sous-dossier pour l'application
             val appFolder = File(documentsDir, "eTT_SAIL")
             if (!appFolder.exists()) {
                 appFolder.mkdirs()
             }
 
-            // Récupérer le nom personnalisé ou utiliser le format par défaut
             var customName = etFileName.text.toString().trim()
 
-            val fileName: String
-            if (customName.isNotEmpty()) {
-                // Nettoyer le nom (retirer caractères invalides)
-                customName = customName.replace(Regex("[^a-zA-Z0-9_-]"), "_")
-
-                // Ajouter .csv si pas déjà présent
-                fileName = if (customName.endsWith(".csv", ignoreCase = true)) {
-                    customName
-                } else {
-                    "$customName.csv"
-                }
-
-                // Si le fichier existe déjà, ajouter un suffixe numérique
-                var finalFile = File(appFolder, fileName)
-                var counter = 1
-                val baseNameWithoutExt = fileName.removeSuffix(".csv")
-
-                while (finalFile.exists()) {
-                    val numberedFileName = "${baseNameWithoutExt}_$counter.csv"
-                    finalFile = File(appFolder, numberedFileName)
-                    counter++
-                }
-
-                csvFile = finalFile
-            } else {
-                // Format par défaut : rec_0001.csv
-                var fileNumber = 1
-                var tempFile: File
-
-                do {
-                    val defaultFileName = "rec_${"%04d".format(fileNumber)}.csv"
-                    tempFile = File(appFolder, defaultFileName)
-                    fileNumber++
-                } while (tempFile.exists())
-
-                csvFile = tempFile
+            // Créer fichier pour Penon 1 si configuré
+            if (TARGET_MAC_ADDRESS1.isNotEmpty()) {
+                csvFile1 = createSingleCSVFile(appFolder, customName, 1)
+                csvWriter1 = FileWriter(csvFile1, false)
+                csvWriter1?.write("Timestamp,MAC_Address,Frame_Number,RSSI,Data_Size,Raw_Hex_Data\n")
+                csvWriter1?.flush()
+                Log.d(TAG, "Fichier CSV Penon 1 créé: ${csvFile1?.absolutePath}")
             }
 
-            csvWriter = FileWriter(csvFile, false)
-
-            // Écrire l'en-tête du CSV
-            csvWriter?.write("Timestamp,Frame_Number,RSSI,Data_Size,Raw_Hex_Data\n")
-            csvWriter?.flush()
+            // Créer fichier pour Penon 2 si configuré
+            if (TARGET_MAC_ADDRESS2.isNotEmpty()) {
+                csvFile2 = createSingleCSVFile(appFolder, customName, 2)
+                csvWriter2 = FileWriter(csvFile2, false)
+                csvWriter2?.write("Timestamp,MAC_Address,Frame_Number,RSSI,Data_Size,Raw_Hex_Data\n")
+                csvWriter2?.flush()
+                Log.d(TAG, "Fichier CSV Penon 2 créé: ${csvFile2?.absolutePath}")
+            }
 
             isRecording = true
 
-            Log.d(TAG, "Fichier CSV créé: ${csvFile?.absolutePath}")
-
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur création fichier CSV", e)
+            Log.e(TAG, "Erreur création fichiers CSV", e)
             Toast.makeText(this, "Erreur création CSV: ${e.message}", Toast.LENGTH_SHORT).show()
             isRecording = false
         }
     }
 
-    private fun saveToCSV(data: ByteArray, rssi: Int) {
+    private fun createSingleCSVFile(appFolder: File, baseName: String, penonNumber: Int): File {
+        val fileName: String
+
+        if (baseName.isNotEmpty()) {
+            var cleanName = baseName.replace(Regex("[^a-zA-Z0-9_-]"), "_")
+
+            // Ajouter le numéro du penon
+            cleanName = "${cleanName}_P${penonNumber}"
+
+            fileName = if (cleanName.endsWith(".csv", ignoreCase = true)) {
+                cleanName
+            } else {
+                "$cleanName.csv"
+            }
+
+            var finalFile = File(appFolder, fileName)
+            var counter = 1
+            val baseNameWithoutExt = fileName.removeSuffix(".csv")
+
+            while (finalFile.exists()) {
+                val numberedFileName = "${baseNameWithoutExt}_$counter.csv"
+                finalFile = File(appFolder, numberedFileName)
+                counter++
+            }
+
+            return finalFile
+        } else {
+            // Format par défaut : rec_0001_P1.csv
+            var fileNumber = 1
+            var tempFile: File
+
+            do {
+                val defaultFileName = "rec_${"%04d".format(fileNumber)}_P${penonNumber}.csv"
+                tempFile = File(appFolder, defaultFileName)
+                fileNumber++
+            } while (tempFile.exists())
+
+            return tempFile
+        }
+    }
+
+    private fun saveToCSV(data: ByteArray, rssi: Int, penonNumber: Int, frameNumber: Int, macAddress: String) {
         try {
-            if (!isRecording || csvWriter == null) return
+            if (!isRecording) return
 
             val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date())
             val hexData = data.joinToString(" ") { "%02X".format(it) }
 
-            // Format: Timestamp, Frame Number, RSSI, Data Size, Raw Hex Data
-            val line = "$timestamp,$frameCount,$rssi,${data.size},\"$hexData\"\n"
+            // Format: Timestamp, MAC, Frame Number, RSSI, Data Size, Raw Hex Data
+            val line = "$timestamp,$macAddress,$frameNumber,$rssi,${data.size},\"$hexData\"\n"
 
-            csvWriter?.write(line)
-            csvWriter?.flush() // Forcer l'écriture immédiate
+            // Écrire dans le fichier approprié
+            if (penonNumber == 1 && csvWriter1 != null) {
+                csvWriter1?.write(line)
+                csvWriter1?.flush()
+            } else if (penonNumber == 2 && csvWriter2 != null) {
+                csvWriter2?.write(line)
+                csvWriter2?.flush()
+            }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur écriture CSV", e)
-            // Ne pas arrêter l'enregistrement pour une erreur ponctuelle
+            Log.e(TAG, "Erreur écriture CSV Penon $penonNumber", e)
         }
     }
 
-    private fun closeCSVFile() {
+    private fun closeCSVFiles() {
         try {
-            csvWriter?.flush()
-            csvWriter?.close()
-            csvWriter = null
+            // Fermer fichier Penon 1
+            if (csvWriter1 != null) {
+                csvWriter1?.flush()
+                csvWriter1?.close()
+                csvWriter1 = null
+                Log.d(TAG, "Fichier CSV Penon 1 fermé: ${csvFile1?.absolutePath}")
+            }
+
+            // Fermer fichier Penon 2
+            if (csvWriter2 != null) {
+                csvWriter2?.flush()
+                csvWriter2?.close()
+                csvWriter2 = null
+                Log.d(TAG, "Fichier CSV Penon 2 fermé: ${csvFile2?.absolutePath}")
+            }
+
             isRecording = false
 
-            Log.d(TAG, "Fichier CSV fermé: ${csvFile?.absolutePath}")
-
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur fermeture fichier CSV", e)
+            Log.e(TAG, "Erreur fermeture fichiers CSV", e)
         }
     }
 
-    private fun parseETTSailData(data: ByteArray): String {
+    private fun parseETTSailData(data: ByteArray, penonNumber: Int): String {
         return try {
             val fullHex = data.joinToString(" ") { "%02X".format(it) }
-            Log.d(TAG, "Données complètes: $fullHex")
+            Log.d(TAG, "Penon $penonNumber - Données complètes: $fullHex")
 
             var manufacturerData = data
             var dataStartOffset = 0
@@ -443,25 +506,17 @@ class MainActivity : AppCompatActivity() {
 
                 val type = data[offset + 1].toInt() and 0xFF
 
-                Log.d(TAG, "Offset $offset: length=$length, type=0x${"%02X".format(type)}")
-
                 if (type == 0xFF) {
                     dataStartOffset = offset + 2
                     manufacturerData = data.copyOfRange(offset + 2, minOf(offset + 1 + length, data.size))
                     foundManufacturerData = true
-                    Log.d(TAG, "Manufacturer data trouvée à offset $dataStartOffset, taille=${manufacturerData.size}")
                     break
                 }
 
                 offset += length + 1
             }
 
-            if (!foundManufacturerData) {
-                Log.d(TAG, "Pas de structure AD détectée, utilisation données brutes")
-            }
-
             val dataHex = manufacturerData.joinToString(" ") { "%02X".format(it) }
-            Log.d(TAG, "Données à décoder: $dataHex")
 
             if (manufacturerData.size < 17) {
                 return "⚠️ Données insuffisantes (${manufacturerData.size} octets)\n" +
@@ -471,21 +526,21 @@ class MainActivity : AppCompatActivity() {
 
             val results = mutableListOf<String>()
 
-            results.add(testDecode(manufacturerData, 0, ByteOrder.LITTLE_ENDIAN, "Sans offset, LE"))
+            results.add(testDecode(manufacturerData, 0, ByteOrder.LITTLE_ENDIAN, "Sans offset, LE", penonNumber))
 
             if (manufacturerData.size >= 19) {
-                results.add(testDecode(manufacturerData, 2, ByteOrder.LITTLE_ENDIAN, "Offset +2, LE"))
+                results.add(testDecode(manufacturerData, 2, ByteOrder.LITTLE_ENDIAN, "Offset +2, LE", penonNumber))
             }
 
-            results.add(testDecode(manufacturerData, 0, ByteOrder.BIG_ENDIAN, "Sans offset, BE"))
+            results.add(testDecode(manufacturerData, 0, ByteOrder.BIG_ENDIAN, "Sans offset, BE", penonNumber))
 
             if (manufacturerData.size >= 19) {
-                results.add(testDecode(manufacturerData, 2, ByteOrder.BIG_ENDIAN, "Offset +2, BE"))
+                results.add(testDecode(manufacturerData, 2, ByteOrder.BIG_ENDIAN, "Offset +2, BE", penonNumber))
             }
 
             buildString {
                 appendLine("═══════════════════════════════")
-                appendLine("TESTS DE DÉCODAGE")
+                appendLine("PENON $penonNumber - TESTS DE DÉCODAGE")
                 appendLine("═══════════════════════════════")
                 results.forEach { appendLine(it) }
                 appendLine("═══════════════════════════════")
@@ -494,14 +549,14 @@ class MainActivity : AppCompatActivity() {
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur de décodage", e)
+            Log.e(TAG, "Erreur de décodage Penon $penonNumber", e)
             "❌ Erreur: ${e.message}\n" +
                     "Taille: ${data.size} octets\n" +
                     "HEX: ${data.joinToString(" ") { "%02X".format(it) }}"
         }
     }
 
-    private fun testDecode(data: ByteArray, offset: Int, order: ByteOrder, label: String): String {
+    private fun testDecode(data: ByteArray, offset: Int, order: ByteOrder, label: String, penonNumber: Int): String {
         return try {
             if (data.size < offset + 17) {
                 return "[$label] Taille insuffisante"
@@ -519,12 +574,12 @@ class MainActivity : AppCompatActivity() {
             val sdAcc = buffer.short.toInt()
             val maxAcc = buffer.short.toInt()
 
-            Log.d(TAG, "[$label] frameCnt=$frameCnt, type=$frameType, vbat=$vbat")
-
             val vbatV = vbat / 1000.0
             val isCoherent = frameCnt in 0..100000000 &&
                     vbatV in 2.0..4.5 &&
                     frameType in 0..255
+
+            val lastFrameCnt = if (penonNumber == 1) lastFrameCnt1 else lastFrameCnt2
 
             val lostFrames = if (lastFrameCnt >= 0 && frameCnt > lastFrameCnt) {
                 val lost = frameCnt - lastFrameCnt - 1
@@ -532,7 +587,11 @@ class MainActivity : AppCompatActivity() {
             } else ""
 
             if (isCoherent && lastFrameCnt < frameCnt) {
-                lastFrameCnt = frameCnt
+                if (penonNumber == 1) {
+                    lastFrameCnt1 = frameCnt
+                } else {
+                    lastFrameCnt2 = frameCnt
+                }
             }
 
             val coherentMark = if (isCoherent) "✅" else "❌"
@@ -565,14 +624,16 @@ class MainActivity : AppCompatActivity() {
     private fun updateUIState() {
         btnStartScan.isEnabled = !isScanning
         btnStopScan.isEnabled = isScanning
-        etFileName.isEnabled = !isScanning // Désactiver pendant l'enregistrement
+        etFileName.isEnabled = !isScanning
+        inputMacP1.isEnabled = !isScanning
+        inputMacP2.isEnabled = !isScanning
     }
 
     override fun onDestroy() {
         super.onDestroy()
         try {
             stopScanning()
-            closeCSVFile()
+            closeCSVFiles()
         } catch (e: Exception) {
             e.printStackTrace()
         }
