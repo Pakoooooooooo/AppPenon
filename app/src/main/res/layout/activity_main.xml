@@ -45,23 +45,21 @@
         android:orientation="horizontal"
         android:layout_marginBottom="8dp">
 
-        <EditText
-            android:id="@+id/inputMacP1"
+        <Button
+            android:id="@+id/btnSetP1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="MAC Penon 1"
-            android:inputType="text"
+            android:text="Settings Penon 1"
             android:padding="12dp"
             android:layout_marginEnd="4dp" />
 
-        <EditText
-            android:id="@+id/inputMacP2"
+        <Button
+            android:id="@+id/btnSetP2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="MAC Penon 2"
-            android:inputType="text"
+            android:text="Settings Penon 2"
             android:padding="12dp"
             android:layout_marginStart="4dp" />
     </LinearLayout>

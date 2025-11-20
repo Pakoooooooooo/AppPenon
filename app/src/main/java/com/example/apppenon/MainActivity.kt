@@ -17,9 +17,40 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnStopScan: Button
     private lateinit var btnClearData: Button
     lateinit var etFileName: android.widget.EditText
-    private lateinit var inputMacP1: android.widget.EditText
-    private lateinit var inputMacP2: android.widget.EditText
+    private lateinit var btnSetP1: Button
+    private lateinit var btnSetP2: Button
     private val PR = PenonReader(this)
+
+    private var devices = mutableListOf(
+        Penon(
+            penonName = "Penon1 (Babord)",
+            macAdress = "AA:BB:CC:DD:EE:01",
+            rssi = true,
+            rssiLow = -90,
+            rssiHigh = -20,
+            flowState = true,
+            flowStateLow = 500,
+            flowStateHigh = 800,
+            sDFlowState = true,
+            sDFlowStateLow = 100,
+            sDFlowStateHigh = 800,
+            detachedThresh = 100.0
+        ),
+        Penon(
+            penonName = "Penon2 (Tribord)",
+            macAdress = "AA:BB:CC:DD:EE:02",
+            rssi = true,
+            rssiLow = -90,
+            rssiHigh = -20,
+            flowState = true,
+            flowStateLow = 500,
+            flowStateHigh = 800,
+            sDFlowState = true,
+            sDFlowStateLow = 100,
+            sDFlowStateHigh = 800,
+            detachedThresh = 100.0
+        )
+    )
 
     // Variables pour l'enregistrement CSV - un fichier par penon
 
@@ -36,8 +67,8 @@ class MainActivity : AppCompatActivity() {
         btnStopScan = findViewById(R.id.btnStopScan)
         btnClearData = findViewById(R.id.btnClearData)
         etFileName = findViewById(R.id.etFileName)
-        inputMacP1 = findViewById(R.id.inputMacP1)
-        inputMacP2 = findViewById(R.id.inputMacP2)
+        btnSetP1 = findViewById(R.id.btnSetP1)
+        btnSetP2 = findViewById(R.id.btnSetP2)
 
         if (PR.bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth non disponible", Toast.LENGTH_LONG).show()
@@ -48,8 +79,8 @@ class MainActivity : AppCompatActivity() {
         PR.requestBluetoothPermissions()
 
         btnStartScan.setOnClickListener {
-            PR.TARGET_MAC_ADDRESS1 = inputMacP1.text.toString().trim()
-            PR.TARGET_MAC_ADDRESS2 = inputMacP2.text.toString().trim()
+            PR.TARGET_MAC_ADDRESS1 = devices[0].macAdress
+            PR.TARGET_MAC_ADDRESS2 = devices[2].macAdress
 
             if (PR.TARGET_MAC_ADDRESS1.isEmpty() && PR.TARGET_MAC_ADDRESS2.isEmpty()) {
                 Toast.makeText(this, "Veuillez entrer au moins une adresse MAC", Toast.LENGTH_SHORT).show()
@@ -92,8 +123,8 @@ class MainActivity : AppCompatActivity() {
         btnStartScan.isEnabled = !PR.isScanning
         btnStopScan.isEnabled = PR.isScanning
         etFileName.isEnabled = !PR.isScanning
-        inputMacP1.isEnabled = !PR.isScanning
-        inputMacP2.isEnabled = !PR.isScanning
+        btnSetP1.isEnabled = !PR.isScanning
+        btnSetP2.isEnabled = !PR.isScanning
     }
 
     override fun onDestroy() {
