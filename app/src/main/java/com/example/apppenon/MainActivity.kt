@@ -1,9 +1,11 @@
 package com.example.apppenon
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
@@ -19,6 +21,9 @@ class MainActivity : AppCompatActivity() {
     lateinit var etFileName: android.widget.EditText
     private lateinit var btnSetP1: Button
     private lateinit var btnSetP2: Button
+    private lateinit var tvEtatPenon1: TextView
+    private lateinit var tvEtatPenon2: TextView
+
     private val PR = PenonReader(this)
 
     private var devices = mutableListOf(
@@ -52,6 +57,36 @@ class MainActivity : AppCompatActivity() {
         )
     )
 
+    private val penonSettingsLauncher1 = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val updatedPenon = result.data?.getSerializableExtra("updated_penon") as? Penon
+            if (updatedPenon != null) {
+                devices[0] = updatedPenon
+                println("updatedPenon: $updatedPenon")
+                tvEtatPenon1.text = "${updatedPenon.penonName} : ✅ Mis à jour"
+            }
+        } else {
+            tvEtatPenon1.text = "${devices[0].penonName} : ❌ Annulé"
+        }
+    }
+
+    private val penonSettingsLauncher2 = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val updatedPenon = result.data?.getSerializableExtra("updated_penon") as? Penon
+            if (updatedPenon != null) {
+                devices[1] = updatedPenon
+                println("updatedPenon: $updatedPenon")
+                tvEtatPenon2.text = "${updatedPenon.penonName} : ✅ Mis à jour"
+            }
+        } else {
+            tvEtatPenon2.text = "${devices[1].penonName} : ❌ Annulé"
+        }
+    }
+
     // Variables pour l'enregistrement CSV - un fichier par penon
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,6 +104,24 @@ class MainActivity : AppCompatActivity() {
         etFileName = findViewById(R.id.etFileName)
         btnSetP1 = findViewById(R.id.btnSetP1)
         btnSetP2 = findViewById(R.id.btnSetP2)
+        tvEtatPenon1 = findViewById(R.id.tvEtatPenon1)
+        tvEtatPenon2 = findViewById(R.id.tvEtatPenon2)
+
+
+
+        btnSetP1.setOnClickListener {
+            val intent = Intent(this, PenonsSettingsActivity::class.java)
+            intent.putExtra("penon_data", devices[0])
+            penonSettingsLauncher1.launch(intent)
+            tvEtatPenon1.text = devices[0].penonName + " : ⏳ En attente..."
+        }
+
+        btnSetP2.setOnClickListener {
+            val intent = Intent(this, PenonsSettingsActivity::class.java)
+            intent.putExtra("penon_data", devices[1])
+            penonSettingsLauncher2.launch(intent)
+            tvEtatPenon2.text = devices[1].penonName + " : ⏳ En attente..."
+        }
 
         if (PR.bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth non disponible", Toast.LENGTH_LONG).show()
