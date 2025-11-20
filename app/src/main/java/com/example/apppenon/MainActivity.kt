@@ -106,7 +106,8 @@ class MainActivity : AppCompatActivity() {
         btnSetP2 = findViewById(R.id.btnSetP2)
         tvEtatPenon1 = findViewById(R.id.tvEtatPenon1)
         tvEtatPenon2 = findViewById(R.id.tvEtatPenon2)
-
+        tvEtatPenon1.text = devices[0].penonName
+        tvEtatPenon2.text = devices[1].penonName
 
 
         btnSetP1.setOnClickListener {
