@@ -18,9 +18,8 @@ class SettingActivity : AppCompatActivity() {
         modeBtn = findViewById(R.id.modeBtn)
 
         modeBtn.setOnClickListener {
-
+            AppData.nextMode()
+            modeBtn.text = AppData.modes[AppData.mode]
         }
-
     }
-
 }
