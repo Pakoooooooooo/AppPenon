@@ -1,4 +1,4 @@
-package com.example.apppenon
+package com.example.apppenon.model
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -8,11 +8,13 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import com.example.apppenon.activities.MainActivity
 import java.io.File
 import java.io.FileWriter
 import java.nio.ByteBuffer
@@ -490,8 +492,8 @@ class PenonReader(act: MainActivity) {
     }
     fun createCSVFiles() {
         try {
-            val documentsDir = android.os.Environment.getExternalStoragePublicDirectory(
-                android.os.Environment.DIRECTORY_DOCUMENTS
+            val documentsDir = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOCUMENTS
             )
 
             val appFolder = File(documentsDir, "eTT_SAIL")

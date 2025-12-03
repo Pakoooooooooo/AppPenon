@@ -35,7 +35,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         <activity
-            android:name=".MainActivity"
+            android:name=".activities.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -43,7 +43,11 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".PenonsSettingsActivity"
+            android:name=".activities.PenonsSettingsActivity"
+            android:exported="true">
+        </activity>
+        <activity
+            android:name=".activities.SettingActivity"
             android:exported="true">
         </activity>
     </application>

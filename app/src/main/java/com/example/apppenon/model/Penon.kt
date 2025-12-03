@@ -1,4 +1,4 @@
-package com.example.apppenon
+package com.example.apppenon.model
 import java.io.Serializable
 
 var penonName: String = "penon"

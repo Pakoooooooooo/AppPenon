@@ -1,12 +1,18 @@
-package com.example.apppenon
+package com.example.apppenon.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
+import android.widget.EditText
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.example.apppenon.model.Penon
+import com.example.apppenon.model.PenonReader
+import com.example.apppenon.R
 
 class MainActivity : AppCompatActivity() {
 
@@ -18,11 +24,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnStartScan: Button
     private lateinit var btnStopScan: Button
     private lateinit var btnClearData: Button
-    lateinit var etFileName: android.widget.EditText
+    lateinit var etFileName: EditText
     private lateinit var btnSetP1: Button
     private lateinit var btnSetP2: Button
     private lateinit var tvEtatPenon1: TextView
     private lateinit var tvEtatPenon2: TextView
+    private lateinit var appModeBtn: Button
 
     private val PR = PenonReader(this)
 
@@ -108,6 +115,12 @@ class MainActivity : AppCompatActivity() {
         tvEtatPenon2 = findViewById(R.id.tvEtatPenon2)
         tvEtatPenon1.text = devices[0].penonName
         tvEtatPenon2.text = devices[1].penonName
+        appModeBtn = findViewById(R.id.appModeBtn)
+
+        appModeBtn.setOnClickListener {
+            val intent = Intent(this, SettingActivity::class.java)
+            startActivity(intent)
+        }
 
 
         btnSetP1.setOnClickListener {
@@ -134,7 +147,7 @@ class MainActivity : AppCompatActivity() {
 
         btnStartScan.setOnClickListener {
             PR.TARGET_MAC_ADDRESS1 = devices[0].macAdress
-            PR.TARGET_MAC_ADDRESS2 = devices[2].macAdress
+            PR.TARGET_MAC_ADDRESS2 = devices[1].macAdress
 
             if (PR.TARGET_MAC_ADDRESS1.isEmpty() && PR.TARGET_MAC_ADDRESS2.isEmpty()) {
                 Toast.makeText(this, "Veuillez entrer au moins une adresse MAC", Toast.LENGTH_SHORT).show()
@@ -163,13 +176,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun autoScroll() {
-        val scrollView1 = findViewById<android.widget.ScrollView>(R.id.scrollView1)
+        val scrollView1 = findViewById<ScrollView>(R.id.scrollView1)
         scrollView1?.post {
-            scrollView1.fullScroll(android.view.View.FOCUS_DOWN)
+            scrollView1.fullScroll(View.FOCUS_DOWN)
         }
-        val scrollView2 = findViewById<android.widget.ScrollView>(R.id.scrollView2)
+        val scrollView2 = findViewById<ScrollView>(R.id.scrollView2)
         scrollView2?.post {
-            scrollView2.fullScroll(android.view.View.FOCUS_DOWN)
+            scrollView2.fullScroll(View.FOCUS_DOWN)
         }
     }
 

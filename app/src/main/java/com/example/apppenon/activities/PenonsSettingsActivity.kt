@@ -1,4 +1,4 @@
-package com.example.apppenon
+package com.example.apppenon.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -7,6 +7,9 @@ import android.widget.Button
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import com.example.apppenon.R
+import com.example.apppenon.model.Penon
+
 class PenonsSettingsActivity : AppCompatActivity() {
 
     lateinit var penon: Penon
@@ -46,7 +49,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
     @SuppressLint("CutPasteId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_settings)
+        setContentView(R.layout.activity_penon_settings)
 
         penon = intent.getSerializableExtra("penon_data") as Penon
 
@@ -111,22 +114,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
         switchCount.isChecked = penon.count
         switchIDs.isChecked = penon.ids
 
-        var waitEditPenonName = penon.penonName
-        var waitEditRSSIlow = penon.rssiLow
-        var waitEditRSSIhigh = penon.rssiHigh
-        var waitEditFlowStateLow = penon.flowStateLow
-        var waitEditFlowStateHigh = penon.flowStateHigh
-        var waitEditSDFlowStateLow = penon.sDFlowStateLow
-        var waitEditSDFlowStateHigh = penon.sDFlowStateHigh
-        var waitEditMeanAccLow = penon.meanAccLow
-        var waitEditMeanAccHigh = penon.meanAccHigh
-        var waitEditSDAccLow = penon.sDAccLow
-        var waitEditSDAccHigh = penon.sDAccHigh
-        var waitEditMaxAccLow = penon.maxAccLow
-        var waitEditMaxAccHigh = penon.maxAccHigh
-        var waitEditVbatLow = penon.vbatLow
-        var waitEditVbatHigh = penon.vbatHigh
-        var waitEditTimeline = penon.timeline
         var waitSwitchRSSI = penon.rssi
         var waitSwitchFlowState = penon.flowState
         var waitSwitchSDFlowState = penon.sDFlowState
@@ -135,7 +122,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
         var waitSwitchMaxAcc = penon.maxAcc
         var waitSwitchVbat = penon.vbat
         var waitSwitchDetached = penon.detached
-        var waitEditDetached = penon.detachedThresh
         var waitSwitchCount = penon.count
         var waitSwitchIDs = penon.ids
         var waitSwitchTimeline = penon.timeline

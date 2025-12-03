@@ -1,4 +1,4 @@
-package com.example.apppenon
+package com.example.apppenon.model
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
