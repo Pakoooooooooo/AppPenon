@@ -97,13 +97,41 @@
                         android:text="Standard"
                         android:layout_marginEnd="8dp" />
                 </LinearLayout>
+            </LinearLayout>
+
+            <!-- RSSI Setting -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/white"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:text="Record"
+                        android:textColor="#000000"
+                        android:textSize="16sp" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switch_rec"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:checked="true" />
+                </RelativeLayout>
 
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#E0E0E0" />
         </LinearLayout>
     </ScrollView>
 

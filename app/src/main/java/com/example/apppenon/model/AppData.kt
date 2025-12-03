@@ -10,4 +10,6 @@ object AppData {
         mode = (mode + 1) % modes.size
     }
 
+    var rec = false
+
 }
