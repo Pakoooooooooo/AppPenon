@@ -5,276 +5,190 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Titre -->
+    <!-- Bouton Settings (toujours visible) -->
+    <Button
+        android:id="@+id/appModeBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⚙️ Paramètres" />
+
+    <!-- Status (visible dans les deux modes) -->
     <TextView
+        android:id="@+id/tvStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="eTT-SAIL Dual Monitor"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:layout_marginBottom="8dp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <!-- Statut -->
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Prêt à écouter"
-            android:textSize="14sp"
-            android:layout_weight="1"
-            android:padding="12dp"
-            android:background="#E3F2FD"
-            android:textColor="#1976D2"
-            android:layout_marginBottom="12dp" />
-        <Button
-            android:id="@+id/appModeBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="0"
-            android:text="Settings" />
-    </LinearLayout>
-
-    <!-- Nom du fichier -->
-    <EditText
-        android:id="@+id/etFileName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Nom de base des fichiers (optionnel)"
-        android:inputType="text"
-        android:maxLines="1"
-        android:padding="12dp"
-        android:layout_marginBottom="8dp" />
-
-    <!-- Adresses MAC -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
-
-        <Button
-            android:id="@+id/btnSetP1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Settings Penon 1"
-            android:padding="12dp"
-            android:layout_marginEnd="4dp" />
-
-        <Button
-            android:id="@+id/btnSetP2"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Settings Penon 2"
-            android:padding="12dp"
-            android:layout_marginStart="4dp" />
-    </LinearLayout>
+        android:layout_marginTop="8dp"
+        android:text="En attente..."
+        android:textSize="16sp"
+        android:gravity="center" />
 
     <!-- Boutons de contrôle -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="12dp">
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/btnStartScan"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="▶ Démarrer"
-            android:layout_marginEnd="4dp" />
+            android:layout_marginEnd="4dp"
+            android:text="▶️ Démarrer" />
 
         <Button
             android:id="@+id/btnStopScan"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="⏹ Arrêter"
-            android:enabled="false"
             android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp" />
+            android:layout_marginEnd="4dp"
+            android:text="⏹️ Arrêter"
+            android:enabled="false" />
 
         <Button
             android:id="@+id/btnClearData"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="🗑 Effacer"
-            android:layout_marginStart="4dp" />
+            android:layout_marginStart="4dp"
+            android:text="🗑️ Effacer" />
     </LinearLayout>
 
-    <!-- Séparateur -->
-    <View
+    <!-- Champ nom de fichier (visible si rec coché) -->
+    <EditText
+        android:id="@+id/etFileName"
         android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:background="#CCCCCC"
-        android:layout_marginBottom="8dp" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Nom du fichier CSV"
+        android:visibility="gone" />
 
-    <!-- Conteneur avec ScrollView pour tout le contenu -->
-    <ScrollView
+    <!-- ✅ NOUVEAU : RecyclerView pour mode Standard -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvPenonCards"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:layout_marginTop="16dp"
+        android:visibility="gone" />
 
+    <!-- Mode Développeur : Reste de votre layout existant -->
+    <LinearLayout
+        android:id="@+id/layoutDeveloper"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- Configuration Penons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal">
 
-            <!-- En-têtes des penons -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <Button
+                android:id="@+id/btnSetP1"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:layout_weight="1"
+                android:text="⚙️ Config P1" />
 
-                <TextView
-                    android:id="@+id/tvEtatPenon1"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🔵 PENON 1"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:background="#E3F2FD"
-                    android:padding="8dp"
-                    android:layout_marginEnd="4dp" />
-
-                <TextView
-                    android:id="@+id/tvEtatPenon2"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🟢 PENON 2"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:background="#E8F5E9"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp" />
-            </LinearLayout>
-
-            <!-- Données décodées -->
-            <TextView
-                android:layout_width="match_parent"
+            <Button
+                android:id="@+id/btnSetP2"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="📊 Données décodées"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="4dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
-
-                <ScrollView
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:layout_weight="1"
-                    android:background="#FAFAFA"
-                    android:padding="8dp"
-                    android:layout_marginEnd="4dp">
-
-                    <TextView
-                        android:id="@+id/tvParsedData1"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="En attente..."
-                        android:textSize="11sp"
-                        android:fontFamily="monospace"
-                        android:textColor="#000000" />
-                </ScrollView>
-
-                <ScrollView
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:layout_weight="1"
-                    android:background="#FAFAFA"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp">
-
-                    <TextView
-                        android:id="@+id/tvParsedData2"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="En attente..."
-                        android:textSize="11sp"
-                        android:fontFamily="monospace"
-                        android:textColor="#000000" />
-                </ScrollView>
-            </LinearLayout>
-
-            <!-- Séparateur -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#E0E0E0"
-                android:layout_marginBottom="8dp" />
-
-            <!-- Données brutes (HEX) -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="🔧 Données brutes (HEX)"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="4dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <ScrollView
-                    android:id="@+id/scrollView1"
-                    android:layout_width="0dp"
-                    android:layout_height="180dp"
-                    android:layout_weight="1"
-                    android:background="#F5F5F5"
-                    android:padding="8dp"
-                    android:layout_marginEnd="4dp">
-
-                    <TextView
-                        android:id="@+id/tvReceivedData1"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Prêt..."
-                        android:textSize="10sp"
-                        android:fontFamily="monospace"
-                        android:textColor="#424242" />
-                </ScrollView>
-
-                <ScrollView
-                    android:id="@+id/scrollView2"
-                    android:layout_width="0dp"
-                    android:layout_height="180dp"
-                    android:layout_weight="1"
-                    android:background="#F5F5F5"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp">
-
-                    <TextView
-                        android:id="@+id/tvReceivedData2"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Prêt..."
-                        android:textSize="10sp"
-                        android:fontFamily="monospace"
-                        android:textColor="#424242" />
-                </ScrollView>
-            </LinearLayout>
-
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="⚙️ Config P2" />
         </LinearLayout>
-    </ScrollView>
+
+        <TextView
+            android:id="@+id/tvEtatPenon1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Penon 1" />
+
+        <TextView
+            android:id="@+id/tvEtatPenon2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Penon 2" />
+
+        <!-- Données Penon 1 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="=== PENON 1 ==="
+            android:textStyle="bold" />
+
+        <ScrollView
+            android:id="@+id/scrollView1"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvReceivedData1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tvParsedData1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="monospace"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Données Penon 2 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="=== PENON 2 ==="
+            android:textStyle="bold" />
+
+        <ScrollView
+            android:id="@+id/scrollView2"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvReceivedData2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tvParsedData2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="monospace"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </ScrollView>
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -22,9 +22,6 @@ import java.nio.ByteOrder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.collections.isNotEmpty
-import kotlin.collections.joinToString
-
 
 class PenonReader(act: MainActivity) {
     private val act = act
@@ -35,7 +32,6 @@ class PenonReader(act: MainActivity) {
     lateinit var TARGET_MAC_ADDRESS1: String
     lateinit var TARGET_MAC_ADDRESS2: String
 
-    // Compteurs séparés pour chaque penon
     var frameCount1 = 0
     var frameCount2 = 0
     var lastFrameCnt1 = -1L
@@ -46,20 +42,21 @@ class PenonReader(act: MainActivity) {
     private var csvWriter2: FileWriter? = null
     private var isRecording = false
     private val PERMISSION_REQUEST_CODE = 100
-
     private val TAG = "eTT-SAIL-BLE"
+
+    // Map pour suivre les compteurs de chaque Penon en mode Standard
+    private val penonFrameCounts = mutableMapOf<String, Int>()
+
     private fun createSingleCSVFile(appFolder: File, baseName: String, penonNumber: Int): File {
         val fileName: String
 
         if (baseName.isNotEmpty()) {
             var cleanName = baseName.replace(Regex("[^a-zA-Z0-9_-]"), "_")
 
-            // Retirer .csv si présent (insensible à la casse)
             if (cleanName.lowercase().endsWith(".csv")) {
                 cleanName = cleanName.substring(0, cleanName.length - 4)
             }
 
-            // Ajouter le numéro du penon
             cleanName = "${cleanName}_P${penonNumber}.csv"
 
             var finalFile = File(appFolder, cleanName)
@@ -74,7 +71,6 @@ class PenonReader(act: MainActivity) {
 
             return finalFile
         } else {
-            // Format par défaut : rec_0001_P1.csv
             var fileNumber = 1
             var tempFile: File
 
@@ -87,17 +83,16 @@ class PenonReader(act: MainActivity) {
             return tempFile
         }
     }
+
     private fun saveToCSV(data: ByteArray, rssi: Int, penonNumber: Int, frameNumber: Int, macAddress: String) {
         try {
-            if (!isRecording) return
+            if (!isRecording || !AppData.rec) return
 
             val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date())
             val hexData = data.joinToString(" ") { "%02X".format(it) }
 
-            // Format: Timestamp, MAC, Frame Number, RSSI, Data Size, Raw Hex Data
             val line = "$timestamp,$macAddress,$frameNumber,$rssi,${data.size},\"$hexData\"\n"
 
-            // Écrire dans le fichier approprié
             if (penonNumber == 1 && csvWriter1 != null) {
                 csvWriter1?.write(line)
                 csvWriter1?.flush()
@@ -110,6 +105,29 @@ class PenonReader(act: MainActivity) {
             Log.e(TAG, "Erreur écriture CSV Penon $penonNumber", e)
         }
     }
+
+    // Extraire les données du Penon (batterie, débit, etc.)
+    private fun extractPenonData(data: ByteArray): Triple<Float, Int, Long>? {
+        return try {
+            if (data.size < 17) return null
+
+            val buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN)
+            buffer.position(0)
+
+            val frameCnt = buffer.int.toLong() and 0xFFFFFFFFL
+            buffer.get() // frameType
+            val vbat = buffer.short.toInt()
+            val meanMagZ = buffer.short.toInt()
+
+            val battery = vbat / 1000.0f
+            val flowState = meanMagZ
+
+            Triple(battery, flowState, frameCnt)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun handlePenonData(result: ScanResult, penonNumber: Int) {
         val rssi = result.rssi
         val scanRecord = result.scanRecord
@@ -119,7 +137,6 @@ class PenonReader(act: MainActivity) {
                 ?: scanRecord.bytes
 
             if (manufacturerData != null && manufacturerData.isNotEmpty()) {
-                // Incrémenter le compteur approprié
                 if (penonNumber == 1) {
                     frameCount1++
                 } else {
@@ -129,8 +146,8 @@ class PenonReader(act: MainActivity) {
                 val currentFrameCount = if (penonNumber == 1) frameCount1 else frameCount2
                 val macAddress = if (penonNumber == 1) TARGET_MAC_ADDRESS1 else TARGET_MAC_ADDRESS2
 
-                // Enregistrer dans le CSV approprié
-                if (isRecording) {
+                // Enregistrer si rec activé (peu importe le mode)
+                if (AppData.rec && isRecording) {
                     saveToCSV(manufacturerData, rssi, penonNumber, currentFrameCount, macAddress)
                 }
 
@@ -145,32 +162,35 @@ class PenonReader(act: MainActivity) {
                     Log.d(TAG, "HEX: $hexData")
                     Log.d(TAG, "RSSI: $rssi dBm")
 
-                    // Mettre à jour l'affichage approprié
-                    if (penonNumber == 1) {
-                        val currentText = act.tvReceivedData1.text.toString()
-                        val newText = "$currentText\n[Trame $currentFrameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
-                        act.tvReceivedData1.text = newText
+                    if (AppData.mode == 1) {
+                        // MODE DÉVELOPPEUR : Affichage complet
+                        if (penonNumber == 1) {
+                            val currentText = act.tvReceivedData1.text.toString()
+                            val newText = "$currentText\n[Trame $currentFrameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
+                            act.tvReceivedData1.text = newText
 
-                        val parsedData = parseETTSailData(manufacturerData, 1)
-                        act.tvParsedData1.text = parsedData
-                    } else {
-                        val currentText = act.tvReceivedData2.text.toString()
-                        val newText = "$currentText\n[Trame $currentFrameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
-                        act.tvReceivedData2.text = newText
+                            val parsedData = parseETTSailData(manufacturerData, 1)
+                            act.tvParsedData1.text = parsedData
+                        } else {
+                            val currentText = act.tvReceivedData2.text.toString()
+                            val newText = "$currentText\n[Trame $currentFrameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
+                            act.tvReceivedData2.text = newText
 
-                        val parsedData = parseETTSailData(manufacturerData, 2)
-                        act.tvParsedData2.text = parsedData
+                            val parsedData = parseETTSailData(manufacturerData, 2)
+                            act.tvParsedData2.text = parsedData
+                        }
+
+                        val recordingStatus = if (isRecording && AppData.rec) "📝" else ""
+                        val totalFrames = frameCount1 + frameCount2
+                        act.tvStatus.text = "$recordingStatus✓ Réception: P1=$frameCount1, P2=$frameCount2 (Total: $totalFrames)"
+
+                        act.autoScroll()
                     }
-
-                    val recordingStatus = if (isRecording) "📝" else ""
-                    val totalFrames = frameCount1 + frameCount2
-                    act.tvStatus.text = "$recordingStatus✓ Réception: P1=$frameCount1, P2=$frameCount2 (Total: $totalFrames)"
-
-                    act.autoScroll()
                 }
             }
         }
     }
+
     fun requestBluetoothPermissions() {
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(
@@ -203,6 +223,7 @@ class PenonReader(act: MainActivity) {
             )
         }
     }
+
     private fun testDecode(data: ByteArray, offset: Int, order: ByteOrder, label: String, penonNumber: Int): String {
         return try {
             if (data.size < offset + 17) {
@@ -256,6 +277,7 @@ class PenonReader(act: MainActivity) {
             "[$label] Erreur: ${e.message}"
         }
     }
+
     private fun parseETTSailData(data: ByteArray, penonNumber: Int): String {
         return try {
             val fullHex = data.joinToString(" ") { "%02X".format(it) }
@@ -322,6 +344,7 @@ class PenonReader(act: MainActivity) {
                     "HEX: ${data.joinToString(" ") { "%02X".format(it) }}"
         }
     }
+
     fun startScanning() {
         if (ActivityCompat.checkSelfPermission(
                 act,
@@ -339,25 +362,31 @@ class PenonReader(act: MainActivity) {
         frameCount2 = 0
         lastFrameCnt1 = -1
         lastFrameCnt2 = -1
+        penonFrameCounts.clear()
 
-        act.tvReceivedData1.text = if (TARGET_MAC_ADDRESS1.isNotEmpty()) {
-            "=== ÉCOUTE PENON 1: $TARGET_MAC_ADDRESS1 ===\n"
-        } else {
-            "=== PENON 1: Non configuré ===\n"
+        if (AppData.mode == 1) {
+            act.tvReceivedData1.text = if (TARGET_MAC_ADDRESS1.isNotEmpty()) {
+                "=== ÉCOUTE PENON 1: $TARGET_MAC_ADDRESS1 ===\n"
+            } else {
+                "=== PENON 1: Non configuré ===\n"
+            }
+
+            act.tvReceivedData2.text = if (TARGET_MAC_ADDRESS2.isNotEmpty()) {
+                "=== ÉCOUTE PENON 2: $TARGET_MAC_ADDRESS2 ===\n"
+            } else {
+                "=== PENON 2: Non configuré ===\n"
+            }
+
+            act.tvParsedData1.text = "En attente de données..."
+            act.tvParsedData2.text = "En attente de données..."
         }
 
-        act.tvReceivedData2.text = if (TARGET_MAC_ADDRESS2.isNotEmpty()) {
-            "=== ÉCOUTE PENON 2: $TARGET_MAC_ADDRESS2 ===\n"
-        } else {
-            "=== PENON 2: Non configuré ===\n"
-        }
-
-        act.tvParsedData1.text = "En attente de données..."
-        act.tvParsedData2.text = "En attente de données..."
         isScanning = true
 
-        // Créer les fichiers CSV
-        createCSVFiles()
+        // Créer les fichiers CSV si rec activé (peu importe le mode)
+        if (AppData.rec) {
+            createCSVFiles()
+        }
 
         act.updateUIState()
 
@@ -375,15 +404,26 @@ class PenonReader(act: MainActivity) {
 
         bluetoothLeScanner?.startScan(null, scanSettings, bleScanCallback)
 
-        val listeningMsg = buildString {
-            append("📝 Écoute: ")
-            if (TARGET_MAC_ADDRESS1.isNotEmpty()) append("P1 ")
-            if (TARGET_MAC_ADDRESS2.isNotEmpty()) append("P2 ")
+        val listeningMsg = when (AppData.mode) {
+            0 -> if (AppData.rec) "📝 Scan et enregistrement..." else "✓ Recherche de Penons..."
+            1 -> buildString {
+                if (AppData.rec) append("📝 ")
+                append("Écoute: ")
+                if (TARGET_MAC_ADDRESS1.isNotEmpty()) append("P1 ")
+                if (TARGET_MAC_ADDRESS2.isNotEmpty()) append("P2 ")
+            }
+            else -> "Scan démarré"
         }
         act.tvStatus.text = listeningMsg
 
-        Toast.makeText(act, "Scan BLE démarré - Enregistrement CSV actif", Toast.LENGTH_SHORT).show()
+        val toastMsg = if (AppData.rec) {
+            "Scan BLE démarré - Enregistrement CSV actif"
+        } else {
+            "Scan BLE démarré"
+        }
+        Toast.makeText(act, toastMsg, Toast.LENGTH_SHORT).show()
     }
+
     fun stopScanning() {
         if (ActivityCompat.checkSelfPermission(
                 act,
@@ -397,40 +437,43 @@ class PenonReader(act: MainActivity) {
         }
 
         bluetoothLeScanner?.stopScan(bleScanCallback)
-
         isScanning = false
-
-        // Fermer les fichiers CSV
         closeCSVFiles()
-
         act.updateUIState()
 
-        val totalFrames = frameCount1 + frameCount2
-        val statusMsg = buildString {
-            appendLine("Scan arrêté - P1: $frameCount1, P2: $frameCount2 (Total: $totalFrames)")
-            if (csvFile1 != null) {
-                appendLine("Fichier P1: ${csvFile1?.name}")
+        val statusMsg = when (AppData.mode) {
+            0 -> "✓ Scan arrêté - ${act.penonCardAdapter.itemCount} Penon(s) détecté(s)"
+            1 -> buildString {
+                appendLine("Scan arrêté - P1: $frameCount1, P2: $frameCount2 (Total: ${frameCount1 + frameCount2})")
+                if (csvFile1 != null) {
+                    appendLine("Fichier P1: ${csvFile1?.name}")
+                }
+                if (csvFile2 != null) {
+                    appendLine("Fichier P2: ${csvFile2?.name}")
+                }
             }
-            if (csvFile2 != null) {
-                appendLine("Fichier P2: ${csvFile2?.name}")
-            }
+            else -> "Scan arrêté"
         }
         act.tvStatus.text = statusMsg
 
-        val toastMsg = buildString {
-            appendLine("Données enregistrées:")
-            if (csvFile1 != null) {
-                appendLine("P1: ${csvFile1?.absolutePath}")
+        if (AppData.mode == 1 && (csvFile1 != null || csvFile2 != null)) {
+            val toastMsg = buildString {
+                appendLine("Données enregistrées:")
+                if (csvFile1 != null) {
+                    appendLine("P1: ${csvFile1?.absolutePath}")
+                }
+                if (csvFile2 != null) {
+                    appendLine("P2: ${csvFile2?.absolutePath}")
+                }
             }
-            if (csvFile2 != null) {
-                appendLine("P2: ${csvFile2?.absolutePath}")
-            }
+            Toast.makeText(act, toastMsg, Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(act, "Scan arrêté", Toast.LENGTH_SHORT).show()
         }
-        Toast.makeText(act, toastMsg, Toast.LENGTH_LONG).show()
     }
+
     fun closeCSVFiles() {
         try {
-            // Fermer fichier Penon 1
             if (csvWriter1 != null) {
                 csvWriter1?.flush()
                 csvWriter1?.close()
@@ -438,7 +481,6 @@ class PenonReader(act: MainActivity) {
                 Log.d(TAG, "Fichier CSV Penon 1 fermé: ${csvFile1?.absolutePath}")
             }
 
-            // Fermer fichier Penon 2
             if (csvWriter2 != null) {
                 csvWriter2?.flush()
                 csvWriter2?.close()
@@ -452,6 +494,7 @@ class PenonReader(act: MainActivity) {
             Log.e(TAG, "Erreur fermeture fichiers CSV", e)
         }
     }
+
     val bleScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             if (ActivityCompat.checkSelfPermission(
@@ -468,30 +511,124 @@ class PenonReader(act: MainActivity) {
             val device = result.device
             val deviceAddress = device.address
 
-            // Traitement pour Penon 1
-            if (deviceAddress.equals(TARGET_MAC_ADDRESS1, ignoreCase = true)) {
-                handlePenonData(result, 1)
-            }
+            // MODE STANDARD : Détecter TOUS les Penons
+            if (AppData.mode == 0) {
+                val scanRecord = result.scanRecord
+                val manufacturerData = scanRecord?.getManufacturerSpecificData(0xFFFF)
+                    ?: scanRecord?.bytes
 
-            // Traitement pour Penon 2 (pas de else, pour permettre le double affichage)
-            if (deviceAddress.equals(TARGET_MAC_ADDRESS2, ignoreCase = true)) {
-                handlePenonData(result, 2)
+                if (manufacturerData != null && manufacturerData.isNotEmpty()) {
+                    val hexString = manufacturerData.take(minOf(20, manufacturerData.size))
+                        .joinToString(" ") { "%02X".format(it) }
+                    Log.d(TAG, "Scan reçu de $deviceAddress - Données: $hexString...")
+                    
+                    // ✅ CORRECTION : Vérifier que c'est bien un Penon avec isLadeSEBeacon
+                    if (isLadeSEBeacon(manufacturerData)) {
+                        Log.d(TAG, "✅ Penon détecté: $deviceAddress")
+                        
+                        // Incrémenter le compteur pour ce Penon
+                        val currentCount = penonFrameCounts.getOrDefault(deviceAddress, 0) + 1
+                        penonFrameCounts[deviceAddress] = currentCount
+
+                        // Extraire les données du Penon
+                        val penonData = extractPenonData(manufacturerData)
+
+                        val detectedPenon = DetectedPenon(
+                            macAddress = deviceAddress,
+                            name = "Penon ${deviceAddress.takeLast(5)}",
+                            rssi = result.rssi,
+                            frameCount = currentCount,
+                            battery = penonData?.first ?: 0f,
+                            flowState = penonData?.second ?: 0,
+                            lastUpdate = System.currentTimeMillis(),
+                            rawHexData = manufacturerData  // ✅ Passer les données hex complètes
+                        )
+
+                        handler.post {
+                            act.penonCardAdapter.updatePenon(detectedPenon, act.PR)
+
+                            // Mettre à jour le statut
+                            val totalPenons = act.penonCardAdapter.itemCount
+                            val recordingStatus = if (isRecording && AppData.rec) "📝 " else ""
+                            act.tvStatus.text = "$recordingStatus📡 $totalPenons Penon(s) détecté(s)"
+                        }
+                    }
+                } else {
+                    Log.d(TAG, "Aucune donnée manufacturer reçue de $deviceAddress")
+                }
+            }
+            // MODE DÉVELOPPEUR : Comportement normal avec adresses configurées
+            else {
+                if (deviceAddress.equals(TARGET_MAC_ADDRESS1, ignoreCase = true)) {
+                    handlePenonData(result, 1)
+                }
+
+                if (deviceAddress.equals(TARGET_MAC_ADDRESS2, ignoreCase = true)) {
+                    handlePenonData(result, 2)
+                }
             }
         }
 
         override fun onScanFailed(errorCode: Int) {
             handler.post {
                 act.tvStatus.text = "Échec du scan BLE: $errorCode"
-                Toast.makeText(
-                    act,
-                    "Échec du scan BLE: $errorCode",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(act, "Échec du scan BLE: $errorCode", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
+    fun ByteArray.contains(subArray: ByteArray): Boolean {
+        if (subArray.isEmpty()) return true
+        if (this.size < subArray.size) return false
+
+        for (i in 0..(this.size - subArray.size)) {
+            var found = true
+            for (j in subArray.indices) {
+                if (this[i + j] != subArray[j]) {
+                    found = false
+                    break
+                }
+            }
+            if (found) return true
+        }
+        return false
+    }
+
+    fun ByteArray.startsWith(prefix: ByteArray): Boolean {
+        if (this.size < prefix.size) return false
+        return prefix.indices.all { this[it] == prefix[it] }
+    }
+
+    fun isLadeSEBeacon(packetData: ByteArray): Boolean {
+        // Vérifier la longueur minimale du paquet
+        if (packetData.size < 45) {
+            Log.d(TAG, "isLadeSEBeacon: paquet trop court (${packetData.size} octets)")
+            return false
+        }
+
+        // Vérification : Structure du paquet BLE attendue
+        // Signature : 02 01 06 14 09 42
+        val expectedPrefix = byteArrayOf(0x02, 0x01, 0x06, 0x14, 0x09, 0x42)
+        val isValid = packetData.startsWith(expectedPrefix)
+        
+        if (isValid) {
+            Log.d(TAG, "isLadeSEBeacon: ✅ Signature valide détectée!")
+        } else {
+            val actualPrefix = packetData.take(minOf(6, packetData.size))
+                .joinToString(" ") { "%02X".format(it) }
+            Log.d(TAG, "isLadeSEBeacon: ❌ Signature invalide. Reçu: $actualPrefix, attendu: 02 01 06 14 09 42")
+        }
+        
+        return isValid
+    }
+
     fun createCSVFiles() {
         try {
+            if (!AppData.rec) {
+                Log.d(TAG, "Création CSV annulée - Rec: ${AppData.rec}")
+                return
+            }
+
             val documentsDir = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS
             )
@@ -503,7 +640,6 @@ class PenonReader(act: MainActivity) {
 
             var customName = act.etFileName.text.toString().trim()
 
-            // Créer fichier pour Penon 1 si configuré
             if (TARGET_MAC_ADDRESS1.isNotEmpty()) {
                 csvFile1 = createSingleCSVFile(appFolder, customName, 1)
                 csvWriter1 = FileWriter(csvFile1, false)
@@ -512,7 +648,6 @@ class PenonReader(act: MainActivity) {
                 Log.d(TAG, "Fichier CSV Penon 1 créé: ${csvFile1?.absolutePath}")
             }
 
-            // Créer fichier pour Penon 2 si configuré
             if (TARGET_MAC_ADDRESS2.isNotEmpty()) {
                 csvFile2 = createSingleCSVFile(appFolder, customName, 2)
                 csvWriter2 = FileWriter(csvFile2, false)

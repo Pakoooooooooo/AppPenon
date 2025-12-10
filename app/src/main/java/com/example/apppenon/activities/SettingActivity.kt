@@ -14,7 +14,6 @@ class SettingActivity : AppCompatActivity() {
     lateinit var backBtn: Button
     lateinit var recSwitch: SwitchCompat
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
@@ -38,8 +37,7 @@ class SettingActivity : AppCompatActivity() {
 
         recSwitch.setOnCheckedChangeListener { _, isChecked ->
             AppData.rec = isChecked
+            // ✅ Pas besoin d'action ici, la MainActivity se mettra à jour dans onResume()
         }
-
-
     }
 }

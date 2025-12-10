@@ -10,8 +10,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.model.Penon
 import com.example.apppenon.model.PenonReader
+import com.example.apppenon.model.AppData
+import com.example.apppenon.adapters.PenonCardAdapter
 import com.example.apppenon.R
 
 class MainActivity : AppCompatActivity() {
@@ -30,8 +34,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvEtatPenon1: TextView
     private lateinit var tvEtatPenon2: TextView
     private lateinit var appModeBtn: Button
+    private lateinit var rvPenonCards: RecyclerView
+    private lateinit var layoutDeveloper: View
 
-    private val PR = PenonReader(this)
+    // ✅ NOUVEAU : Adaptateur pour les cartes
+    lateinit var penonCardAdapter: PenonCardAdapter
+
+    val PR = PenonReader(this)
 
     private var devices = mutableListOf(
         Penon(
@@ -94,8 +103,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Variables pour l'enregistrement CSV - un fichier par penon
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -116,12 +123,18 @@ class MainActivity : AppCompatActivity() {
         tvEtatPenon1.text = devices[0].penonName
         tvEtatPenon2.text = devices[1].penonName
         appModeBtn = findViewById(R.id.appModeBtn)
+        rvPenonCards = findViewById(R.id.rvPenonCards)
+        layoutDeveloper = findViewById(R.id.layoutDeveloper)
+
+        // ✅ NOUVEAU : Initialiser le RecyclerView
+        penonCardAdapter = PenonCardAdapter()
+        rvPenonCards.layoutManager = LinearLayoutManager(this)
+        rvPenonCards.adapter = penonCardAdapter
 
         appModeBtn.setOnClickListener {
             val intent = Intent(this, SettingActivity::class.java)
             startActivity(intent)
         }
-
 
         btnSetP1.setOnClickListener {
             val intent = Intent(this, PenonsSettingsActivity::class.java)
@@ -146,12 +159,19 @@ class MainActivity : AppCompatActivity() {
         PR.requestBluetoothPermissions()
 
         btnStartScan.setOnClickListener {
-            PR.TARGET_MAC_ADDRESS1 = devices[0].macAdress
-            PR.TARGET_MAC_ADDRESS2 = devices[1].macAdress
+            // ✅ En mode Standard, on scanne TOUS les Penons
+            if (AppData.mode == 0) {
+                PR.TARGET_MAC_ADDRESS1 = "" // Vide = tous les Penons
+                PR.TARGET_MAC_ADDRESS2 = ""
+            } else {
+                // Mode développeur : utiliser les adresses configurées
+                PR.TARGET_MAC_ADDRESS1 = devices[0].macAdress
+                PR.TARGET_MAC_ADDRESS2 = devices[1].macAdress
 
-            if (PR.TARGET_MAC_ADDRESS1.isEmpty() && PR.TARGET_MAC_ADDRESS2.isEmpty()) {
-                Toast.makeText(this, "Veuillez entrer au moins une adresse MAC", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+                if (PR.TARGET_MAC_ADDRESS1.isEmpty() && PR.TARGET_MAC_ADDRESS2.isEmpty()) {
+                    Toast.makeText(this, "Veuillez entrer au moins une adresse MAC", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
             }
 
             PR.startScanning()
@@ -170,9 +190,68 @@ class MainActivity : AppCompatActivity() {
             PR.frameCount2 = 0
             PR.lastFrameCnt1 = -1
             PR.lastFrameCnt2 = -1
+
+            // ✅ Effacer les cartes en mode Standard
+            if (AppData.mode == 0) {
+                penonCardAdapter.clearAll()
+            }
         }
 
         updateUIState()
+        updateUIForMode()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateUIForMode()
+    }
+
+    private fun updateUIForMode() {
+        when (AppData.mode) {
+            0 -> { // Mode Standard
+                // Afficher le RecyclerView, cacher le mode développeur
+                rvPenonCards.visibility = View.VISIBLE
+                layoutDeveloper.visibility = View.GONE
+
+                tvStatus.visibility = View.VISIBLE
+                tvReceivedData1.visibility = View.GONE
+                tvReceivedData2.visibility = View.GONE
+                tvParsedData1.visibility = View.GONE
+                tvParsedData2.visibility = View.GONE
+                btnSetP1.visibility = View.GONE
+                btnSetP2.visibility = View.GONE
+                tvEtatPenon1.visibility = View.GONE
+                tvEtatPenon2.visibility = View.GONE
+
+                etFileName.visibility = if (AppData.rec) View.VISIBLE else View.GONE
+
+                btnStartScan.visibility = View.VISIBLE
+                btnStopScan.visibility = View.VISIBLE
+                btnClearData.visibility = View.VISIBLE
+                appModeBtn.visibility = View.VISIBLE
+            }
+            1 -> { // Mode Développeur
+                // Cacher le RecyclerView, afficher le mode développeur
+                rvPenonCards.visibility = View.GONE
+                layoutDeveloper.visibility = View.VISIBLE
+
+                tvStatus.visibility = View.VISIBLE
+                tvReceivedData1.visibility = View.VISIBLE
+                tvReceivedData2.visibility = View.VISIBLE
+                tvParsedData1.visibility = View.VISIBLE
+                tvParsedData2.visibility = View.VISIBLE
+                btnSetP1.visibility = View.VISIBLE
+                btnSetP2.visibility = View.VISIBLE
+                tvEtatPenon1.visibility = View.VISIBLE
+                tvEtatPenon2.visibility = View.VISIBLE
+                btnStartScan.visibility = View.VISIBLE
+                btnStopScan.visibility = View.VISIBLE
+                btnClearData.visibility = View.VISIBLE
+                appModeBtn.visibility = View.VISIBLE
+
+                etFileName.visibility = if (AppData.rec) View.VISIBLE else View.GONE
+            }
+        }
     }
 
     fun autoScroll() {
