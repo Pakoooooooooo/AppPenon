@@ -7,7 +7,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.R
 import com.example.apppenon.model.DetectedPenon
-import com.example.apppenon.model.PenonReader
+import com.example.apppenon.model.BLEScanManager
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -80,12 +80,12 @@ class PenonCardAdapter () : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolde
 
     override fun getItemCount() = penonList.size
 
-    fun updatePenon(penon: DetectedPenon, PR: PenonReader) {
+    fun updatePenon(penon: DetectedPenon, bleScanManager: BLEScanManager) {
         val index = penonList.indexOfFirst { it.macAddress == penon.macAddress }
         if (index != -1) {
             penonList[index] = penon
             notifyItemChanged(index)
-        } else if (penon.rawHexData.isNotEmpty() && PR.isLadeSEBeacon(penon.rawHexData)) {
+        } else if (penon.rawHexData.isNotEmpty() && bleScanManager.isLadeSEBeacon(penon.rawHexData)) {
             // ✅ Utiliser rawHexData au lieu de macAddress
             penonList.add(penon)
             notifyItemInserted(penonList.size - 1)
