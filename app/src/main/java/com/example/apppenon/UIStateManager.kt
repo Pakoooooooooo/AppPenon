@@ -44,8 +44,6 @@ class UIStateManager(private val act: MainActivity) {
         act.tvReceivedData2.visibility = View.GONE
         act.tvParsedData1.visibility = View.GONE
         act.tvParsedData2.visibility = View.GONE
-        act.btnSetP1.visibility = View.GONE
-        act.btnSetP2.visibility = View.GONE
         act.tvEtatPenon1.visibility = View.GONE
         act.tvEtatPenon2.visibility = View.GONE
 
@@ -70,8 +68,6 @@ class UIStateManager(private val act: MainActivity) {
         act.tvReceivedData2.visibility = View.VISIBLE
         act.tvParsedData1.visibility = View.VISIBLE
         act.tvParsedData2.visibility = View.VISIBLE
-        act.btnSetP1.visibility = View.VISIBLE
-        act.btnSetP2.visibility = View.VISIBLE
         act.tvEtatPenon1.visibility = View.VISIBLE
         act.tvEtatPenon2.visibility = View.VISIBLE
         act.btnStartScan.visibility = View.VISIBLE
@@ -90,8 +86,6 @@ class UIStateManager(private val act: MainActivity) {
         act.btnStartScan.isEnabled = !PR.isScanning
         act.btnStopScan.isEnabled = PR.isScanning
         act.etFileName.isEnabled = !PR.isScanning
-        act.btnSetP1.isEnabled = !PR.isScanning
-        act.btnSetP2.isEnabled = !PR.isScanning
     }
 
     /**

@@ -8,9 +8,12 @@
     <!-- Bouton Settings (toujours visible) -->
     <Button
         android:id="@+id/appModeBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="⚙️ Paramètres" />
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:text="⚙️"
+        android:textSize="16sp"
+        android:layout_gravity="end"
+        />
 
     <!-- Status (visible dans les deux modes) -->
     <TextView
@@ -20,7 +23,8 @@
         android:layout_marginTop="8dp"
         android:text="En attente..."
         android:textSize="16sp"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="@color/grey"/>
 
     <!-- Boutons de contrôle -->
     <LinearLayout
@@ -32,28 +36,31 @@
         <Button
             android:id="@+id/btnStartScan"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
             android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:text="▶️ Démarrer" />
+            android:layout_marginHorizontal="2dp"
+            android:text="▶️ Démarrer"
+            android:textSize="9sp"/>
 
         <Button
             android:id="@+id/btnStopScan"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
             android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
+            android:layout_marginHorizontal="2dp"
             android:text="⏹️ Arrêter"
-            android:enabled="false" />
+            android:enabled="false"
+            android:backgroundTint="@color/grey"
+            android:textSize="9sp"/>
 
         <Button
             android:id="@+id/btnClearData"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
             android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:text="🗑️ Effacer" />
+            android:layout_marginHorizontal="2dp"
+            android:text="🗑️ Effacer"
+            android:textSize="9sp"/>
     </LinearLayout>
 
     <!-- Champ nom de fichier (visible si rec coché) -->

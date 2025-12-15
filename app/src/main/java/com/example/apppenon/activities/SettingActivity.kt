@@ -15,6 +15,7 @@ class SettingActivity : AppCompatActivity() {
     lateinit var recSwitch: SwitchCompat
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_AppPenon)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 

@@ -95,6 +95,7 @@ class MainActivity : AppCompatActivity() {
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_AppPenon)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -195,11 +196,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             PR.startScanning()
+            updateColor()
         }
 
         // Arrêter le scan
         btnStopScan.setOnClickListener {
             PR.stopScanning()
+            updateColor()
         }
 
         // Effacer les données
@@ -214,6 +217,27 @@ class MainActivity : AppCompatActivity() {
             if (AppData.mode == 0) {
                 penonCardAdapter.clearAll()
             }
+            updateColor()
+        }
+    }
+
+    fun updateColor(){
+        if (btnStartScan.isEnabled) {
+            btnStartScan.setBackgroundColor(resources.getColor(R.color.sea))
+        } else {
+            btnStartScan.setBackgroundColor(resources.getColor(R.color.grey))
+        }
+        if (btnStopScan.isEnabled) {
+            btnStopScan.setBackgroundColor(resources.getColor(R.color.sea))
+        }
+        else {
+            btnStopScan.setBackgroundColor(resources.getColor(R.color.grey))
+        }
+        if (btnClearData.isEnabled) {
+            btnClearData.setBackgroundColor(resources.getColor(R.color.sea))
+        }
+        else {
+            btnClearData.setBackgroundColor(resources.getColor(R.color.grey))
         }
     }
 
