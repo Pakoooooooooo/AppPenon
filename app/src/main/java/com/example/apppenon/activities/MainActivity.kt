@@ -7,50 +7,33 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.PenonSettingsManager
 import com.example.apppenon.UIStateManager
 import com.example.apppenon.model.Penon
 import com.example.apppenon.model.PenonReader
-import com.example.apppenon.model.AppData
 import com.example.apppenon.adapters.PenonCardAdapter
+import com.example.apppenon.data.PenonSettingsRepository
 import com.example.apppenon.R
+import kotlinx.coroutines.launch
 
 /**
- * Activité principale de l'application.
- * 
- * Responsabilités:
- * - Gérer l'interface utilisateur (boutons, TextViews, RecyclerView)
- * - Initialiser les managers de scan BLE et de settings
- * - Coordonner les événements utilisateur
- * 
- * Architecture:
- * MainActivity
- * ├─→ UIStateManager (Gestion UI)
- * ├─→ PenonSettingsManager (Gestion settings Penons)
- * ├─→ PenonReader (Scan BLE via BLEScanManager)
- * └─→ PenonCardAdapter (RecyclerView)
+ * Activité principale - VERSION DYNAMIQUE
+ *
+ * ✅ Détecte automatiquement les Penons via BLE
+ * ✅ Crée dynamiquement les objets Penon
+ * ✅ Plus de Penon1/Penon2 prédéfinis
  */
 class MainActivity : AppCompatActivity() {
 
-    // Éléments UI
     lateinit var tvStatus: TextView
-    lateinit var tvReceivedData1: TextView
-    lateinit var tvReceivedData2: TextView
-    lateinit var tvParsedData1: TextView
-    lateinit var tvParsedData2: TextView
     lateinit var btnStartScan: Button
     lateinit var btnStopScan: Button
     lateinit var btnClearData: Button
     lateinit var etFileName: EditText
-    lateinit var btnSetP1: Button
-    lateinit var btnSetP2: Button
-    lateinit var tvEtatPenon1: TextView
-    lateinit var tvEtatPenon2: TextView
-    lateinit var appModeBtn: Button
     lateinit var rvPenonCards: RecyclerView
-    lateinit var layoutDeveloper: android.view.View
 
     // Adaptateur RecyclerView
     lateinit var penonCardAdapter: PenonCardAdapter
@@ -59,61 +42,49 @@ class MainActivity : AppCompatActivity() {
     private lateinit var uiStateManager: UIStateManager
     private lateinit var penonSettingsManager: PenonSettingsManager
 
+    // Repository centralisé
+    private lateinit var repository: PenonSettingsRepository
+
     // Lecteur BLE
     val PR = PenonReader(this)
 
-    // Liste des deux Penons configurables
-    val deviceList = mutableListOf(
-        Penon(
-            penonName = "Penon1 (Babord)",
-            macAdress = "AA:BB:CC:DD:EE:01",
-            rssi = true,
-            rssiLow = -90,
-            rssiHigh = -20,
-            flowState = true,
-            flowStateLow = 500,
-            flowStateHigh = 800,
-            sDFlowState = true,
-            sDFlowStateLow = 100,
-            sDFlowStateHigh = 800,
-            detachedThresh = 100.0
-        ),
-        Penon(
-            penonName = "Penon2 (Tribord)",
-            macAdress = "AA:BB:CC:DD:EE:02",
-            rssi = true,
-            rssiLow = -90,
-            rssiHigh = -20,
-            flowState = true,
-            flowStateLow = 500,
-            flowStateHigh = 800,
-            sDFlowState = true,
-            sDFlowStateLow = 100,
-            sDFlowStateHigh = 800,
-            detachedThresh = 100.0
-        )
-    )
+    // ✅ Liste DYNAMIQUE - plus de valeurs par défaut !
+    val deviceList = mutableListOf<Penon>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.Theme_AppPenon)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Initialiser le Repository
+        repository = PenonSettingsRepository(this)
+
         // Initialiser les vues
         initializeViews()
+
+        // ✅ Charger les Penons déjà connus depuis le Repository
+        loadKnownPenons()
 
         // Initialiser les managers
         uiStateManager = UIStateManager(this)
         penonSettingsManager = PenonSettingsManager(
             this,
-            tvEtatPenon1,
-            tvEtatPenon2,
             deviceList
         )
-        penonSettingsManager.initialize()
 
         // Initialiser le RecyclerView
-        penonCardAdapter = PenonCardAdapter()
+        penonCardAdapter = PenonCardAdapter(
+            onPenonClick = { detectedPenon ->
+                // Trouver ou créer le Penon correspondant
+                val penon = getOrCreatePenon(detectedPenon.macAddress)
+
+                // Ouvrir l'activité des paramètres
+                val intent = Intent(this, PenonsSettingsActivity::class.java)
+                intent.putExtra("penon_data", penon)
+                startActivity(intent)
+            },
+            penonSettings = deviceList
+        )
         rvPenonCards.layoutManager = LinearLayoutManager(this)
         rvPenonCards.adapter = penonCardAdapter
 
@@ -131,70 +102,117 @@ class MainActivity : AppCompatActivity() {
 
         // Mettre à jour l'UI
         uiStateManager.updateUIState(PR)
-        uiStateManager.updateUIForMode()
+
+        // Observer les changements de settings en temps réel
+        observeSettingsChanges()
     }
 
     /**
-     * Initialise toutes les références aux vues.
+     * ✅ Charge tous les Penons déjà connus depuis SharedPreferences
      */
+    private fun loadKnownPenons() {
+        val knownMacs = repository.getAllKnownMacAddresses()
+
+        knownMacs.forEach { mac ->
+            val penon = Penon(macAdress = mac)
+            repository.loadPenon(penon)
+            deviceList.add(penon)
+        }
+
+        if (deviceList.isNotEmpty()) {
+            Toast.makeText(
+                this,
+                "${deviceList.size} Penon(s) chargé(s)",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    /**
+     * ✅ Récupère un Penon existant ou en crée un nouveau
+     */
+    fun getOrCreatePenon(macAddress: String): Penon {
+        // Chercher dans la liste existante
+        var penon = deviceList.find { it.macAdress == macAddress }
+
+        if (penon == null) {
+            // Créer un nouveau Penon avec des valeurs par défaut
+            penon = Penon(
+                penonName = "Penon ${macAddress.takeLast(5)}",
+                macAdress = macAddress,
+                rssi = true,
+                rssiLow = -90,
+                rssiHigh = -20,
+                flowState = true,
+                flowStateThreshold = 500,
+                sDFlowState = true,
+                sDFlowStateLow = 100,
+                sDFlowStateHigh = 800,
+                detachedThresh = 100.0
+            )
+
+            // Charger depuis le Repository (au cas où il existe déjà)
+            repository.loadPenon(penon)
+
+            // Ajouter à la liste
+            deviceList.add(penon)
+
+            Toast.makeText(
+                this,
+                "Nouveau Penon détecté : ${penon.penonName}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        return penon
+    }
+
+    /**
+     * ✅ Observer les changements de settings en temps réel
+     */
+    private fun observeSettingsChanges() {
+        lifecycleScope.launch {
+            repository.observeAllPenons().collect { allPenons ->
+                // Mettre à jour deviceList avec les nouvelles valeurs
+                allPenons.forEach { (mac, penon) ->
+                    val index = deviceList.indexOfFirst { it.macAdress == mac }
+                    if (index != -1 && penon != null) {
+                        deviceList[index] = penon.copy()
+                    }
+                }
+
+                // Mettre à jour l'adaptateur
+                penonCardAdapter.notifyDataSetChanged()
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        // Recharger tous les Penons connus
+        deviceList.forEach { penon ->
+            repository.loadPenon(penon)
+        }
+
+        // Mettre à jour l'adaptateur
+        penonCardAdapter.notifyDataSetChanged()
+    }
+
     private fun initializeViews() {
         tvStatus = findViewById(R.id.tvStatus)
-        tvReceivedData1 = findViewById(R.id.tvReceivedData1)
-        tvReceivedData2 = findViewById(R.id.tvReceivedData2)
-        tvParsedData1 = findViewById(R.id.tvParsedData1)
-        tvParsedData2 = findViewById(R.id.tvParsedData2)
         btnStartScan = findViewById(R.id.btnStartScan)
         btnStopScan = findViewById(R.id.btnStopScan)
         btnClearData = findViewById(R.id.btnClearData)
         etFileName = findViewById(R.id.etFileName)
-        btnSetP1 = findViewById(R.id.btnSetP1)
-        btnSetP2 = findViewById(R.id.btnSetP2)
-        tvEtatPenon1 = findViewById(R.id.tvEtatPenon1)
-        tvEtatPenon2 = findViewById(R.id.tvEtatPenon2)
-        tvEtatPenon1.text = deviceList[0].penonName
-        tvEtatPenon2.text = deviceList[1].penonName
-        appModeBtn = findViewById(R.id.appModeBtn)
         rvPenonCards = findViewById(R.id.rvPenonCards)
-        layoutDeveloper = findViewById(R.id.layoutDeveloper)
     }
 
-    /**
-     * Configure les listeners pour tous les boutons.
-     */
     private fun setupButtonListeners() {
-        // Mode d'application
-        appModeBtn.setOnClickListener {
-            val intent = Intent(this, SettingActivity::class.java)
-            startActivity(intent)
-        }
-
-        // Settings Penon 1
-        btnSetP1.setOnClickListener {
-            penonSettingsManager.launchSettingsForPenon1()
-        }
-
-        // Settings Penon 2
-        btnSetP2.setOnClickListener {
-            penonSettingsManager.launchSettingsForPenon2()
-        }
-
         // Démarrer le scan
         btnStartScan.setOnClickListener {
-            if (AppData.mode == 0) {
-                // Mode Standard : scanner tous les Penons
-                PR.TARGET_MAC_ADDRESS1 = ""
-                PR.TARGET_MAC_ADDRESS2 = ""
-            } else {
-                // Mode Développeur : utiliser les adresses configurées
-                PR.TARGET_MAC_ADDRESS1 = penonSettingsManager.getPenon1MacAddress()
-                PR.TARGET_MAC_ADDRESS2 = penonSettingsManager.getPenon2MacAddress()
-
-                if (PR.TARGET_MAC_ADDRESS1.isEmpty() && PR.TARGET_MAC_ADDRESS2.isEmpty()) {
-                    Toast.makeText(this, "Veuillez entrer au moins une adresse MAC", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-            }
-
+            PR.TARGET_MAC_ADDRESS1 = ""
+            PR.TARGET_MAC_ADDRESS2 = ""
             PR.startScanning()
             updateColor()
         }
@@ -207,16 +225,7 @@ class MainActivity : AppCompatActivity() {
 
         // Effacer les données
         btnClearData.setOnClickListener {
-            tvReceivedData1.text = ""
-            tvParsedData1.text = "En attente de données..."
-            tvReceivedData2.text = ""
-            tvParsedData2.text = "En attente de données..."
-            PR.frameCount1 = 0
-            PR.frameCount2 = 0
-
-            if (AppData.mode == 0) {
-                penonCardAdapter.clearAll()
-            }
+            penonCardAdapter.clearAll()
             updateColor()
         }
     }
@@ -239,25 +248,6 @@ class MainActivity : AppCompatActivity() {
         else {
             btnClearData.setBackgroundColor(resources.getColor(R.color.grey))
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        uiStateManager.updateUIForMode()
-    }
-
-    /**
-     * Scroll automatique des TextViews du mode développeur.
-     */
-    fun autoScroll() {
-        uiStateManager.autoScroll()
-    }
-
-    /**
-     * Met à jour l'état des boutons selon le statut du scan.
-     */
-    fun updateUIState() {
-        uiStateManager.updateUIState(PR)
     }
 
     override fun onDestroy() {

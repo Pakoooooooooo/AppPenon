@@ -43,6 +43,41 @@ class PenonDataParser {
     }
 
     /**
+     * Décode les données du Penon et retourne un objet PenonDecodedData.
+     */
+    fun decodePenonData(data: ByteArray): PenonDecodedData? {
+        return try {
+            if (data.size < 17) return null
+
+            val buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN)
+            buffer.position(0)
+
+            val frameCount = buffer.int.toLong() and 0xFFFFFFFFL
+            val frameType = buffer.get().toInt() and 0xFF
+            val vbat = buffer.short.toInt()
+            val meanMagZ = buffer.short.toInt()
+            val sdMagZ = buffer.short.toInt()
+            val meanAcc = buffer.short.toInt()
+            val sdAcc = buffer.short.toInt()
+            val maxAcc = buffer.short.toInt()
+
+            PenonDecodedData(
+                frameCount = frameCount,
+                frameType = frameType,
+                vbat = vbat / 1000.0,
+                meanMagZ = meanMagZ,
+                sdMagZ = sdMagZ,
+                meanAcc = meanAcc,
+                sdAcc = sdAcc,
+                maxAcc = maxAcc
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur décodage", e)
+            null
+        }
+    }
+
+    /**
      * Parse une trame ETT-SAIL et teste différentes configurations de décodage.
      * Retourne un rapport formaté avec les résultats des tests.
      */

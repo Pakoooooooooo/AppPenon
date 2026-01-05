@@ -8,10 +8,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.R
 import com.example.apppenon.model.DetectedPenon
 import com.example.apppenon.model.BLEScanManager
-import java.text.SimpleDateFormat
-import java.util.*
 
-class PenonCardAdapter () : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolder>() {
+class PenonCardAdapter (
+    private val onPenonClick: ((DetectedPenon) -> Unit)? = null,
+    private val penonSettings: MutableList<com.example.apppenon.model.Penon> = mutableListOf()
+) : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolder>() {
 
     private val penonList = mutableListOf<DetectedPenon>()
 
@@ -19,10 +20,11 @@ class PenonCardAdapter () : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolde
         val tvPenonName: TextView = view.findViewById(R.id.tvPenonName)
         val tvRssi: TextView = view.findViewById(R.id.tvRssi)
         val tvMacAddress: TextView = view.findViewById(R.id.tvMacAddress)
-        val tvFrameCount: TextView = view.findViewById(R.id.tvFrameCount)
         val tvBattery: TextView = view.findViewById(R.id.tvBattery)
         val tvFlowState: TextView = view.findViewById(R.id.tvFlowState)
+        val tvSDFlowState: TextView = view.findViewById(R.id.tvSDFlowState)
         val tvLastUpdate: TextView = view.findViewById(R.id.tvLastUpdate)
+        val tvAttachedStatus: TextView = view.findViewById(R.id.tvAttachedStatus)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PenonViewHolder {
@@ -34,10 +36,13 @@ class PenonCardAdapter () : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolde
     override fun onBindViewHolder(holder: PenonViewHolder, position: Int) {
         val penon = penonList[position]
 
+        // Nom du Penon
         holder.tvPenonName.text = penon.name
+        
+        // MAC Address
         holder.tvMacAddress.text = "MAC: ${penon.macAddress}"
 
-        // Afficher RSSI avec signal strength
+        // RSSI avec icône de signal (en haut à droite)
         val signalIcon = when {
             penon.rssi > -50 -> "📶"
             penon.rssi > -70 -> "📶"
@@ -46,9 +51,7 @@ class PenonCardAdapter () : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolde
         }
         holder.tvRssi.text = "$signalIcon ${penon.rssi} dBm"
 
-        holder.tvFrameCount.text = "📊 Trames: ${penon.frameCount}"
-
-        // Afficher batterie si disponible
+        // Batterie (en haut à droite)
         holder.tvBattery.text = if (penon.battery > 0) {
             val batteryIcon = when {
                 penon.battery > 4.0 -> "🔋"
@@ -56,25 +59,36 @@ class PenonCardAdapter () : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolde
                 penon.battery > 3.0 -> "🪫"
                 else -> "⚠️"
             }
-            "$batteryIcon Batterie: ${"%.2f".format(penon.battery)}V"
+            "$batteryIcon ${"%.2f".format(penon.battery)}V"
         } else {
-            "🔋 Batterie: --"
+            "🔋 --"
         }
 
-        // Afficher flow state si disponible
-        holder.tvFlowState.text = if (penon.flowState > 0) {
-            "🌊 Débit: ${penon.flowState}"
+        // Calculer l'état Attaché/Détaché basé sur le seuil de flow state
+        val flowStateThreshold = penonSettings.find { it.macAdress == penon.macAddress }?.flowStateThreshold ?: 500
+        val isAttached = penon.flowState >= flowStateThreshold
+        
+        // STATUT ATTACHÉ/DÉTACHÉ - DONNÉE PRINCIPALE
+        holder.tvAttachedStatus.text = if (isAttached) {
+            "🔗 ATTACHÉ"
         } else {
-            "🌊 Débit: --"
+            "❌ DÉTACHÉ"
         }
+        
+        holder.tvAttachedStatus.setTextColor(
+            if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt()
+        )
 
-        // Temps depuis dernière mise à jour
-        val timeDiff = System.currentTimeMillis() - penon.lastUpdate
-        val seconds = timeDiff / 1000
-        holder.tvLastUpdate.text = when {
-            seconds < 5 -> "🕒 À l'instant"
-            seconds < 60 -> "🕒 Il y a ${seconds}s"
-            else -> "🕒 Il y a ${seconds / 60}min"
+        // Masquer Flow State et SD Flow State (pas nécessaires à afficher)
+        holder.tvFlowState.visibility = View.GONE
+        holder.tvSDFlowState.visibility = View.GONE
+        
+        // Masquer le temps de mise à jour
+        holder.tvLastUpdate.visibility = View.GONE
+
+        // Click listener sur toute la carte
+        holder.itemView.setOnClickListener {
+            onPenonClick?.invoke(penon)
         }
     }
 
@@ -86,7 +100,6 @@ class PenonCardAdapter () : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolde
             penonList[index] = penon
             notifyItemChanged(index)
         } else if (penon.rawHexData.isNotEmpty() && bleScanManager.isLadeSEBeacon(penon.rawHexData)) {
-            // ✅ Utiliser rawHexData au lieu de macAddress
             penonList.add(penon)
             notifyItemInserted(penonList.size - 1)
         }

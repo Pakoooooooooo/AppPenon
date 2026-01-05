@@ -140,28 +140,25 @@ class BLEScanManager(
                     Log.d(TAG, "HEX: $hexData")
                     Log.d(TAG, "RSSI: $rssi dBm")
 
-                    if (AppData.mode == 1) {
-                        if (penonNumber == 1) {
-                            val currentText = act.tvReceivedData1.text.toString()
-                            val newText = "$currentText\n[Trame $currentFrameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
-                            act.tvReceivedData1.text = newText
-
-                            val parsedData = dataParser.parseETTSailData(manufacturerData, 1)
-                            act.tvParsedData1.text = parsedData
-                        } else {
-                            val currentText = act.tvReceivedData2.text.toString()
-                            val newText = "$currentText\n[Trame $currentFrameCount] RSSI: $rssi dBm\nHEX: $hexData\n"
-                            act.tvReceivedData2.text = newText
-
-                            val parsedData = dataParser.parseETTSailData(manufacturerData, 2)
-                            act.tvParsedData2.text = parsedData
+                    // Parser les données (sans affichage UI)
+                    val parsedData = dataParser.parseETTSailData(manufacturerData, penonNumber)
+                    Log.d(TAG, "Parsed: $parsedData")
+                    
+                    // Décoder les données et envoyer à PenonsSettingsActivity
+                    val decodedData = dataParser.decodePenonData(manufacturerData)
+                    if (decodedData != null) {
+                        // Importer pour utiliser le callback statique
+                        try {
+                            val settingsActivityClass = Class.forName("com.example.apppenon.activities.PenonsSettingsActivity")
+                            val updateMethod = settingsActivityClass.getDeclaredMethod(
+                                "updateDecodedData", 
+                                PenonDecodedData::class.java, 
+                                String::class.java
+                            )
+                            updateMethod.invoke(null, decodedData, targetMacAddress)
+                        } catch (e: Exception) {
+                            Log.d(TAG, "Could not update PenonsSettingsActivity: ${e.message}")
                         }
-
-                        val recordingStatus = if (csvManager.isRecordingActive() && AppData.rec) "📝" else ""
-                        val totalFrames = frameCount1 + frameCount2
-                        act.tvStatus.text = "$recordingStatus✓ Réception: P1=$frameCount1, P2=$frameCount2 (Total: $totalFrames)"
-
-                        act.autoScroll()
                     }
                 }
             }
@@ -193,31 +190,12 @@ class BLEScanManager(
         penonFrameCounts.clear()
         dataParser.resetFrameCounters()
 
-        if (AppData.mode == 1) {
-            act.tvReceivedData1.text = if (targetMacAddress1.isNotEmpty()) {
-                "=== ÉCOUTE PENON 1: $targetMacAddress1 ===\n"
-            } else {
-                "=== PENON 1: Non configuré ===\n"
-            }
-
-            act.tvReceivedData2.text = if (targetMacAddress2.isNotEmpty()) {
-                "=== ÉCOUTE PENON 2: $targetMacAddress2 ===\n"
-            } else {
-                "=== PENON 2: Non configuré ===\n"
-            }
-
-            act.tvParsedData1.text = "En attente de données..."
-            act.tvParsedData2.text = "En attente de données..."
-        }
-
         isScanning = true
 
         // Créer les fichiers CSV si rec activé (peu importe le mode)
         if (AppData.rec) {
             csvManager.createCSVFiles(targetMacAddress1, targetMacAddress2)
         }
-
-        act.updateUIState()
 
         val scanSettings = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             ScanSettings.Builder()
@@ -271,7 +249,6 @@ class BLEScanManager(
         bluetoothLeScanner?.stopScan(bleScanCallback)
         isScanning = false
         csvManager.closeCSVFiles()
-        act.updateUIState()
 
         val (csvFile1, csvFile2) = csvManager.getCreatedFiles()
 
@@ -325,7 +302,6 @@ class BLEScanManager(
             val device = result.device
             val deviceAddress = device.address
 
-            // MODE STANDARD : Détecter TOUS les Penons
             if (AppData.mode == 0) {
                 val scanRecord = result.scanRecord
                 val manufacturerData = scanRecord?.getManufacturerSpecificData(0xFFFF)
@@ -335,14 +311,17 @@ class BLEScanManager(
                     val hexString = manufacturerData.take(minOf(20, manufacturerData.size))
                         .joinToString(" ") { "%02X".format(it) }
                     Log.d(TAG, "Scan reçu de $deviceAddress - Données: $hexString...")
-                    
+
                     if (isLadeSEBeacon(manufacturerData)) {
                         Log.d(TAG, "✅ Penon détecté: $deviceAddress")
-                        
+
                         val currentCount = penonFrameCounts.getOrDefault(deviceAddress, 0) + 1
                         penonFrameCounts[deviceAddress] = currentCount
 
                         val penonData = dataParser.extractPenonData(manufacturerData)
+
+                        // ✅ Décoder les données complètes
+                        val decodedData = dataParser.decodePenonData(manufacturerData)
 
                         val detectedPenon = DetectedPenon(
                             macAddress = deviceAddress,
@@ -356,24 +335,22 @@ class BLEScanManager(
                         )
 
                         handler.post {
+                            // ✅ Utiliser la méthode existante d'update
                             act.penonCardAdapter.updatePenon(detectedPenon, this@BLEScanManager)
 
                             val totalPenons = act.penonCardAdapter.itemCount
-                            val recordingStatus = if (csvManager.isRecordingActive() && AppData.rec) "📝 " else ""
-                            act.tvStatus.text = "$recordingStatus📡 $totalPenons Penon(s) détecté(s)"
+                            val recordingStatus = if (csvManager.isRecordingActive() && AppData.rec) "🔴 " else ""
+                            act.tvStatus.text = "${recordingStatus}📡 $totalPenons Penon(s) détecté(s)"
                         }
                     }
                 } else {
                     Log.d(TAG, "Aucune donnée manufacturer reçue de $deviceAddress")
                 }
-            }
-            // MODE DÉVELOPPEUR : Comportement normal avec adresses configurées
-            else {
-                if (deviceAddress.equals(targetMacAddress1, ignoreCase = true)) {
+            } else if (AppData.mode == 1) {
+                // Mode Développeur: listen to specific MAC addresses
+                if (deviceAddress == targetMacAddress1) {
                     handlePenonData(result, 1, targetMacAddress1)
-                }
-
-                if (deviceAddress.equals(targetMacAddress2, ignoreCase = true)) {
+                } else if (deviceAddress == targetMacAddress2) {
                     handlePenonData(result, 2, targetMacAddress2)
                 }
             }
@@ -390,7 +367,7 @@ class BLEScanManager(
     /**
      * Extension pour vérifier si un ByteArray commence par un prefix donné.
      */
-    fun ByteArray.startsWith(prefix: ByteArray): Boolean {
+    private fun ByteArray.startsWith(prefix: ByteArray): Boolean {
         if (this.size < prefix.size) return false
         return prefix.indices.all { this[it] == prefix[it] }
     }
