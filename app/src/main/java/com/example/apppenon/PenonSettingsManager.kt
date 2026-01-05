@@ -24,8 +24,8 @@ class PenonSettingsManager(
 
     fun savePenonSettings(penon: Penon) {
         with(sharedPref.edit()) {
-            putInt("${penon.macAdress}_flowStateThreshold", penon.flowStateThreshold)
-            putBoolean("${penon.macAdress}_flowState", penon.flowState)
+            putInt("${penon.macAddress}_flowStateThreshold", penon.flowStateThreshold)
+            putBoolean("${penon.macAddress}_flowState", penon.flowState)
             apply()
         }
     }
@@ -33,12 +33,12 @@ class PenonSettingsManager(
     fun loadPenonSettings(penon: Penon) {
         penon.flowStateThreshold =
             sharedPref.getInt(
-                "${penon.macAdress}_flowStateThreshold",
+                "${penon.macAddress}_flowStateThreshold",
                 penon.flowStateThreshold
             )
         penon.flowState =
             sharedPref.getBoolean(
-                "${penon.macAdress}_flowState",
+                "${penon.macAddress}_flowState",
                 penon.flowState
             )
     }

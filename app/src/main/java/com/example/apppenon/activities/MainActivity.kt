@@ -1,11 +1,14 @@
 package com.example.apppenon.activities
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -35,20 +38,15 @@ class MainActivity : AppCompatActivity() {
     lateinit var etFileName: EditText
     lateinit var rvPenonCards: RecyclerView
 
-    // Adaptateur RecyclerView
     lateinit var penonCardAdapter: PenonCardAdapter
-
-    // Managers délégués
     private lateinit var uiStateManager: UIStateManager
     private lateinit var penonSettingsManager: PenonSettingsManager
-
-    // Repository centralisé
     private lateinit var repository: PenonSettingsRepository
 
-    // Lecteur BLE
-    val PR = PenonReader(this)
+    // ✅ ÉTAPE 1 : Déclarer le launcher au niveau de la classe
+    private lateinit var penonSettingsLauncher: ActivityResultLauncher<Intent>
 
-    // ✅ Liste DYNAMIQUE - plus de valeurs par défaut !
+    val PR = PenonReader(this)
     val deviceList = mutableListOf<Penon>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,39 +54,56 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialiser le Repository
+        // ✅ ÉTAPE 2 : Enregistrer le launcher IMMÉDIATEMENT dans onCreate
+        // On ne peut pas faire ça dans le callback du clic
+        // Dans le onCreate de MainActivity
+        penonSettingsLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                // Récupérer le penon mis à jour renvoyé par PenonsSettingsActivity
+                val updatedPenon = result.data?.getSerializableExtra("updated_penon") as? Penon
+
+
+                if (updatedPenon != null) {
+                    // 1. Trouver la position de ce penon dans votre liste locale
+                    val index = deviceList.indexOfFirst { it.macAddress == updatedPenon.macAddress }
+
+                    if (index != -1) {
+                        // 2. Mettre à jour la liste avec les nouvelles données
+                        deviceList[index] = updatedPenon
+
+                        // 3. Notifier l'adaptateur qu'un élément spécifique a changé (plus performant que notifyDataSetChanged)
+                        Toast.makeText(this, "Données mises à jour", Toast.LENGTH_SHORT).show()
+                        penonCardAdapter.notifyItemChanged(index)
+                    }
+                }
+            }
+        }
+
         repository = PenonSettingsRepository(this)
-
-        // Initialiser les vues
         initializeViews()
-
-        // ✅ Charger les Penons déjà connus depuis le Repository
         loadKnownPenons()
 
-        // Initialiser les managers
         uiStateManager = UIStateManager(this)
-        penonSettingsManager = PenonSettingsManager(
-            this,
-            deviceList
-        )
+        penonSettingsManager = PenonSettingsManager(this, deviceList)
 
-        // Initialiser le RecyclerView
+        // ✅ ÉTAPE 3 : Configurer l'adaptateur avec le launcher déjà prêt
         penonCardAdapter = PenonCardAdapter(
             onPenonClick = { detectedPenon ->
-                // Trouver ou créer le Penon correspondant
                 val penon = getOrCreatePenon(detectedPenon.macAddress)
 
-                // Ouvrir l'activité des paramètres
+                // On utilise simplement le launcher déjà enregistré
                 val intent = Intent(this, PenonsSettingsActivity::class.java)
-                intent.putExtra("penon_data", penon)
-                startActivity(intent)
+                intent.putExtra("penon_mac_address", penon.macAddress)
+                penonSettingsLauncher.launch(intent)
             },
             penonSettings = deviceList
         )
+
         rvPenonCards.layoutManager = LinearLayoutManager(this)
         rvPenonCards.adapter = penonCardAdapter
 
-        // Vérifier la disponibilité de Bluetooth
         if (PR.bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth non disponible", Toast.LENGTH_LONG).show()
             finish()
@@ -96,14 +111,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         PR.requestBluetoothPermissions()
-
-        // Configurer les listeners des boutons
         setupButtonListeners()
-
-        // Mettre à jour l'UI
         uiStateManager.updateUIState(PR)
-
-        // Observer les changements de settings en temps réel
         observeSettingsChanges()
     }
 
@@ -114,7 +123,7 @@ class MainActivity : AppCompatActivity() {
         val knownMacs = repository.getAllKnownMacAddresses()
 
         knownMacs.forEach { mac ->
-            val penon = Penon(macAdress = mac)
+            val penon = Penon(macAddress = mac)
             repository.loadPenon(penon)
             deviceList.add(penon)
         }
@@ -133,13 +142,13 @@ class MainActivity : AppCompatActivity() {
      */
     fun getOrCreatePenon(macAddress: String): Penon {
         // Chercher dans la liste existante
-        var penon = deviceList.find { it.macAdress == macAddress }
+        var penon = deviceList.find { it.macAddress == macAddress }
 
         if (penon == null) {
             // Créer un nouveau Penon avec des valeurs par défaut
             penon = Penon(
                 penonName = "Penon ${macAddress.takeLast(5)}",
-                macAdress = macAddress,
+                macAddress = macAddress,
                 rssi = true,
                 rssiLow = -90,
                 rssiHigh = -20,
@@ -173,15 +182,13 @@ class MainActivity : AppCompatActivity() {
     private fun observeSettingsChanges() {
         lifecycleScope.launch {
             repository.observeAllPenons().collect { allPenons ->
-                // Mettre à jour deviceList avec les nouvelles valeurs
                 allPenons.forEach { (mac, penon) ->
-                    val index = deviceList.indexOfFirst { it.macAdress == mac }
+                    val index = deviceList.indexOfFirst { it.macAddress == mac }
                     if (index != -1 && penon != null) {
+                        // ✅ Correction mutation : On remplace l'objet dans la liste mutable
                         deviceList[index] = penon.copy()
                     }
                 }
-
-                // Mettre à jour l'adaptateur
                 penonCardAdapter.notifyDataSetChanged()
             }
         }

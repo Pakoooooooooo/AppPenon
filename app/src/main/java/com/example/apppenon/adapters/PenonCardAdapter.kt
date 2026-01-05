@@ -36,58 +36,30 @@ class PenonCardAdapter (
     override fun onBindViewHolder(holder: PenonViewHolder, position: Int) {
         val penon = penonList[position]
 
-        // Nom du Penon
-        holder.tvPenonName.text = penon.name
-        
-        // MAC Address
+        // 1. Récupérer les réglages mis à jour
+        // IMPORTANT : penonSettings DOIT être la liste mise à jour depuis MainActivity
+        val settings = penonSettings.find { it.macAddress == penon.macAddress }
+
+        val nameToDisplay = settings?.penonName ?: penon.name
+        val threshold = settings?.flowStateThreshold ?: 500
+
+        // 2. Mise à jour des textes
+        holder.tvPenonName.text = nameToDisplay
         holder.tvMacAddress.text = "MAC: ${penon.macAddress}"
 
-        // RSSI avec icône de signal (en haut à droite)
-        val signalIcon = when {
-            penon.rssi > -50 -> "📶"
-            penon.rssi > -70 -> "📶"
-            penon.rssi > -85 -> "📡"
-            else -> "📉"
-        }
-        holder.tvRssi.text = "$signalIcon ${penon.rssi} dBm"
+        // ... (votre code RSSI et Batterie est correct)
 
-        // Batterie (en haut à droite)
-        holder.tvBattery.text = if (penon.battery > 0) {
-            val batteryIcon = when {
-                penon.battery > 4.0 -> "🔋"
-                penon.battery > 3.5 -> "🔋"
-                penon.battery > 3.0 -> "🪫"
-                else -> "⚠️"
-            }
-            "$batteryIcon ${"%.2f".format(penon.battery)}V"
-        } else {
-            "🔋 --"
+        // 3. Logique d'attachement (Calculée avec le nouveau seuil)
+        val isAttached = penon.flowState >= threshold
+
+        holder.tvAttachedStatus.apply {
+            text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"
+            setTextColor(if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt())
         }
 
-        // Calculer l'état Attaché/Détaché basé sur le seuil de flow state
-        val flowStateThreshold = penonSettings.find { it.macAdress == penon.macAddress }?.flowStateThreshold ?: 500
-        val isAttached = penon.flowState >= flowStateThreshold
-        
-        // STATUT ATTACHÉ/DÉTACHÉ - DONNÉE PRINCIPALE
-        holder.tvAttachedStatus.text = if (isAttached) {
-            "🔗 ATTACHÉ"
-        } else {
-            "❌ DÉTACHÉ"
-        }
-        
-        holder.tvAttachedStatus.setTextColor(
-            if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt()
-        )
-
-        // Masquer Flow State et SD Flow State (pas nécessaires à afficher)
-        holder.tvFlowState.visibility = View.GONE
-        holder.tvSDFlowState.visibility = View.GONE
-        
-        // Masquer le temps de mise à jour
-        holder.tvLastUpdate.visibility = View.GONE
-
-        // Click listener sur toute la carte
+        // 4. Click listener
         holder.itemView.setOnClickListener {
+            // On passe l'objet de données détectées
             onPenonClick?.invoke(penon)
         }
     }

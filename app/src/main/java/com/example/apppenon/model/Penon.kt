@@ -2,7 +2,7 @@ package com.example.apppenon.model
 import java.io.Serializable
 
 var penonName: String = "penon"
-var macAdress: String = "00:00:00:00:00:00"
+var macAddress: String = "00:00:00:00:00:00"
 var rssi: Boolean = false
 var rssiLow: Int = -75
 var rssiHigh: Int = -50
@@ -31,7 +31,7 @@ var timeline: Int = 0
 
 data class Penon (
     var penonName: String = "penon",
-    var macAdress: String = "00:00:00:00:00:00",
+    var macAddress: String = "00:00:00:00:00:00",
     var rssi: Boolean = false,
     var rssiLow: Int = -75,
     var rssiHigh: Int = -50,
