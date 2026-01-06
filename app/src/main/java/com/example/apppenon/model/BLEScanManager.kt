@@ -297,22 +297,9 @@ class BLEScanManager(
                         val currentCount = penonFrameCounts.getOrDefault(deviceAddress, 0) + 1
                         penonFrameCounts[deviceAddress] = currentCount
 
-                        val penonData = dataParser.extractPenonData(manufacturerData)
-
-                        val detectedPenon = DetectedPenon(
-                            macAddress = deviceAddress,
-                            name = "Penon ${deviceAddress.takeLast(5)}",
-                            rssi = result.rssi,
-                            frameCount = currentCount,
-                            battery = penonData?.first ?: 0f,
-                            flowState = penonData?.second ?: 0,
-                            lastUpdate = System.currentTimeMillis(),
-                            rawHexData = manufacturerData
-                        )
-
                         handler.post {
                             // ✅ Utiliser la méthode existante d'update
-                            act.penonCardAdapter.updatePenon(detectedPenon, this@BLEScanManager)
+                            act.penonCardAdapter.updatePenon(deviceAddress, manufacturerData, this@BLEScanManager)
 
                             val totalPenons = act.penonCardAdapter.itemCount
                             val recordingStatus = if (csvManager.isRecordingActive() && AppData.rec) "🔴 " else ""

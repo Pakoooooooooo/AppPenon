@@ -6,15 +6,15 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.R
-import com.example.apppenon.model.DetectedPenon
 import com.example.apppenon.model.BLEScanManager
+import com.example.apppenon.model.Penon
 
 class PenonCardAdapter (
-    private val onPenonClick: ((DetectedPenon) -> Unit)? = null,
+    private val onPenonClick: ((Penon) -> Unit)? = null,
     private val penonSettings: MutableList<com.example.apppenon.model.Penon> = mutableListOf()
 ) : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolder>() {
 
-    private val penonList = mutableListOf<DetectedPenon>()
+    private val penonList = mutableListOf<Penon>()
 
     class PenonViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvPenonName: TextView = view.findViewById(R.id.tvPenonName)
@@ -41,18 +41,18 @@ class PenonCardAdapter (
         // IMPORTANT : penonSettings DOIT être la liste mise à jour depuis MainActivity
         val settings = penonSettings.find { it.macAddress == penon.macAddress }
 
-        val nameToDisplay = settings?.penonName ?: penon.name
+        val nameToDisplay = settings?.penonName ?: penon.penonName
         val threshold = settings?.flowStateThreshold ?: 500
 
         // 2. Mise à jour des textes
         holder.tvPenonName.text = nameToDisplay
         holder.tvMacAddress.text = "MAC: ${penon.macAddress}"
-        holder.tvData.text = penon.flowState.toString()
+        holder.tvData.text = penon.state.getFlowState().toString()
 
         // ... (votre code RSSI et Batterie est correct)
 
         // 3. Logique d'attachement (Calculée avec le nouveau seuil)
-        val isAttached = penon.flowState >= threshold
+        val isAttached = penon.state.getFlowState() >= threshold
 
         holder.tvAttachedStatus.apply {
             text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"
@@ -68,12 +68,14 @@ class PenonCardAdapter (
 
     override fun getItemCount() = penonList.size
 
-    fun updatePenon(penon: DetectedPenon, bleScanManager: BLEScanManager) {
-        val index = penonList.indexOfFirst { it.macAddress == penon.macAddress }
+    fun updatePenon(macAddress: String, rawHexData: ByteArray, bleScanManager: BLEScanManager) {
+        val index = penonList.indexOfFirst { it.macAddress == macAddress }
         if (index != -1) {
-            penonList[index] = penon
+            penonList[index].state.updateFromRawData(rawHexData)
             notifyItemChanged(index)
-        } else if (penon.rawHexData.isNotEmpty() && bleScanManager.isLadeSEBeacon(penon.rawHexData)) {
+        } else if (rawHexData.isNotEmpty() && bleScanManager.isLadeSEBeacon(rawHexData)) {
+            val penon = Penon(macAddress = macAddress)
+            penon.state.updateFromRawData(rawHexData)
             penonList.add(penon)
             notifyItemInserted(penonList.size - 1)
         }

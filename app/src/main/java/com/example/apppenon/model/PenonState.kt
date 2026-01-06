@@ -31,4 +31,8 @@ class PenonState {
         this.sd_acc = buffer.short.toDouble()
         this.max_acc = buffer.short.toDouble()
     }
+
+    fun getFlowState(): Double {
+        return this.avr_acc
+    }
 }
