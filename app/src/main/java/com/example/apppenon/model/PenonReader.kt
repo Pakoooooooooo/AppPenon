@@ -21,12 +21,8 @@ import com.example.apppenon.activities.MainActivity
  *        └─→ BLEScanManager (Scan)
  */
 class PenonReader(act: MainActivity) {
-    private val act = act
     val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter?.bluetoothLeScanner
-    
-    lateinit var TARGET_MAC_ADDRESS: String
-
     // Managers délégués
     private val csvManager = CSVManager(act)
     private val dataParser = PenonDataParser()
