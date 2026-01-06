@@ -218,8 +218,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupButtonListeners() {
         // Démarrer le scan
         btnStartScan.setOnClickListener {
-            PR.TARGET_MAC_ADDRESS1 = ""
-            PR.TARGET_MAC_ADDRESS2 = ""
+            PR.TARGET_MAC_ADDRESS = ""
             PR.startScanning()
             updateColor()
         }

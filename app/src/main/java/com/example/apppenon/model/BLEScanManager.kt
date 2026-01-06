@@ -34,15 +34,12 @@ class BLEScanManager(
     private val PERMISSION_REQUEST_CODE = 100
     
     // Adresses MAC cibles (stockées localement)
-    private var targetMacAddress1 = ""
-    private var targetMacAddress2 = ""
     
     // Map pour suivre les compteurs de chaque Penon en mode Standard
     private val penonFrameCounts = mutableMapOf<String, Int>()
 
     var isScanning = false
-    var frameCount1 = 0
-    var frameCount2 = 0
+    var frameCount = 0
 
     /**
      * Valide si le paquet est un beacon LadeSE valide.
@@ -107,7 +104,7 @@ class BLEScanManager(
     /**
      * Traite les données reçues d'un Penon en mode Développeur.
      */
-    fun handlePenonData(result: ScanResult, penonNumber: Int, targetMacAddress: String) {
+    fun handlePenonData(result: ScanResult) {
         val rssi = result.rssi
         val scanRecord = result.scanRecord
 
@@ -116,17 +113,13 @@ class BLEScanManager(
                 ?: scanRecord.bytes
 
             if (manufacturerData != null && manufacturerData.isNotEmpty()) {
-                if (penonNumber == 1) {
-                    frameCount1++
-                } else {
-                    frameCount2++
-                }
+                frameCount++
 
-                val currentFrameCount = if (penonNumber == 1) frameCount1 else frameCount2
+                val currentFrameCount = frameCount
 
                 // Enregistrer si rec activé (peu importe le mode)
                 if (AppData.rec && csvManager.isRecordingActive()) {
-                    csvManager.saveToCSV(manufacturerData, rssi, penonNumber, currentFrameCount, targetMacAddress)
+                    csvManager.saveToCSV(manufacturerData, rssi, currentFrameCount, 1, "000")
                 }
 
                 handler.post {
@@ -134,14 +127,13 @@ class BLEScanManager(
                         "%02X".format(it)
                     }
 
-                    Log.d(TAG, "=== PENON $penonNumber - TRAME #$currentFrameCount ===")
-                    Log.d(TAG, "MAC: $targetMacAddress")
+                    Log.d(TAG, "=== PENON 1 - TRAME #$currentFrameCount ===")
                     Log.d(TAG, "Taille: ${manufacturerData.size} octets")
                     Log.d(TAG, "HEX: $hexData")
                     Log.d(TAG, "RSSI: $rssi dBm")
 
                     // Parser les données (sans affichage UI)
-                    val parsedData = dataParser.parseETTSailData(manufacturerData, penonNumber)
+                    val parsedData = dataParser.parseETTSailData(manufacturerData, 1)
                     Log.d(TAG, "Parsed: $parsedData")
                     
                     // Décoder les données et envoyer à PenonsSettingsActivity
@@ -155,7 +147,6 @@ class BLEScanManager(
                                 PenonDecodedData::class.java, 
                                 String::class.java
                             )
-                            updateMethod.invoke(null, decodedData, targetMacAddress)
                         } catch (e: Exception) {
                             Log.d(TAG, "Could not update PenonsSettingsActivity: ${e.message}")
                         }
@@ -168,10 +159,7 @@ class BLEScanManager(
     /**
      * Démarrage du scan BLE avec les paramètres appropriés.
      */
-    fun startScanning(targetMacAddress1: String, targetMacAddress2: String) {
-        // Stocker les adresses localement
-        this.targetMacAddress1 = targetMacAddress1
-        this.targetMacAddress2 = targetMacAddress2
+    fun startScanning() {
         
         if (ActivityCompat.checkSelfPermission(
                 act,
@@ -185,17 +173,11 @@ class BLEScanManager(
             return
         }
 
-        frameCount1 = 0
-        frameCount2 = 0
+        frameCount = 0
         penonFrameCounts.clear()
         dataParser.resetFrameCounters()
 
         isScanning = true
-
-        // Créer les fichiers CSV si rec activé (peu importe le mode)
-        if (AppData.rec) {
-            csvManager.createCSVFiles(targetMacAddress1, targetMacAddress2)
-        }
 
         val scanSettings = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             ScanSettings.Builder()
@@ -215,9 +197,6 @@ class BLEScanManager(
             0 -> if (AppData.rec) "📝 Scan et enregistrement..." else "✓ Recherche de Penons..."
             1 -> buildString {
                 if (AppData.rec) append("📝 ")
-                append("Écoute: ")
-                if (targetMacAddress1.isNotEmpty()) append("P1 ")
-                if (targetMacAddress2.isNotEmpty()) append("P2 ")
             }
             else -> "Scan démarré"
         }
@@ -234,7 +213,7 @@ class BLEScanManager(
     /**
      * Arrête le scan BLE et ferme les fichiers CSV.
      */
-    fun stopScanning(targetMacAddress1: String, targetMacAddress2: String) {
+    fun stopScanning() {
         if (ActivityCompat.checkSelfPermission(
                 act,
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
@@ -255,7 +234,7 @@ class BLEScanManager(
         val statusMsg = when (AppData.mode) {
             0 -> "✓ Scan arrêté - ${act.penonCardAdapter.itemCount} Penon(s) détecté(s)"
             1 -> buildString {
-                appendLine("Scan arrêté - P1: $frameCount1, P2: $frameCount2 (Total: ${frameCount1 + frameCount2})")
+                appendLine("Scan arrêté - $frameCount")
                 if (csvFile1 != null) {
                     appendLine("Fichier P1: ${csvFile1.name}")
                 }
@@ -320,9 +299,6 @@ class BLEScanManager(
 
                         val penonData = dataParser.extractPenonData(manufacturerData)
 
-                        // ✅ Décoder les données complètes
-                        val decodedData = dataParser.decodePenonData(manufacturerData)
-
                         val detectedPenon = DetectedPenon(
                             macAddress = deviceAddress,
                             name = "Penon ${deviceAddress.takeLast(5)}",
@@ -348,11 +324,7 @@ class BLEScanManager(
                 }
             } else if (AppData.mode == 1) {
                 // Mode Développeur: listen to specific MAC addresses
-                if (deviceAddress == targetMacAddress1) {
-                    handlePenonData(result, 1, targetMacAddress1)
-                } else if (deviceAddress == targetMacAddress2) {
-                    handlePenonData(result, 2, targetMacAddress2)
-                }
+                handlePenonData(result)
             }
         }
 
