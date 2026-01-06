@@ -233,27 +233,28 @@ class MainActivity : AppCompatActivity() {
         // Effacer les données
         btnClearData.setOnClickListener {
             penonCardAdapter.clearAll()
-            updateColor()
         }
     }
 
     fun updateColor(){
         if (btnStartScan.isEnabled) {
-            btnStartScan.setBackgroundColor(resources.getColor(R.color.sea))
-        } else {
             btnStartScan.setBackgroundColor(resources.getColor(R.color.grey))
+            btnStartScan.setTextColor(resources.getColor(R.color.white))
+            btnStartScan.isEnabled = false
+        } else {
+            btnStartScan.setBackgroundColor(resources.getColor(R.color.sea))
+            btnStartScan.setTextColor(resources.getColor(R.color.white))
+            btnStartScan.isEnabled = true
         }
         if (btnStopScan.isEnabled) {
-            btnStopScan.setBackgroundColor(resources.getColor(R.color.sea))
-        }
-        else {
             btnStopScan.setBackgroundColor(resources.getColor(R.color.grey))
-        }
-        if (btnClearData.isEnabled) {
-            btnClearData.setBackgroundColor(resources.getColor(R.color.sea))
+            btnStopScan.setTextColor(resources.getColor(R.color.white))
+            btnStopScan.isEnabled = false
         }
         else {
-            btnClearData.setBackgroundColor(resources.getColor(R.color.grey))
+            btnStopScan.setBackgroundColor(resources.getColor(R.color.sea))
+            btnStopScan.setTextColor(resources.getColor(R.color.white))
+            btnStopScan.isEnabled = true
         }
     }
 

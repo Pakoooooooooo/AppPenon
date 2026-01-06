@@ -105,7 +105,7 @@
 
         <!-- Message "pas de données" -->
         <TextView
-            android:id="@+id/tvNoData"
+            android:id="@+id/tvData"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="⏳ En attente de données..."

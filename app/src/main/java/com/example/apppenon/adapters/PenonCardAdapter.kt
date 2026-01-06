@@ -25,6 +25,7 @@ class PenonCardAdapter (
         val tvSDFlowState: TextView = view.findViewById(R.id.tvSDFlowState)
         val tvLastUpdate: TextView = view.findViewById(R.id.tvLastUpdate)
         val tvAttachedStatus: TextView = view.findViewById(R.id.tvAttachedStatus)
+        val tvData: TextView = view.findViewById(R.id.tvData)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PenonViewHolder {
@@ -46,6 +47,7 @@ class PenonCardAdapter (
         // 2. Mise à jour des textes
         holder.tvPenonName.text = nameToDisplay
         holder.tvMacAddress.text = "MAC: ${penon.macAddress}"
+        holder.tvData.text = penon.flowState.toString()
 
         // ... (votre code RSSI et Batterie est correct)
 
