@@ -47,7 +47,6 @@ class BLEScanManager(
      */
     fun isLadeSEBeacon(packetData: ByteArray): Boolean {
         if (packetData.size < 45) {
-            Log.d(TAG, "isLadeSEBeacon: paquet trop court (${packetData.size} octets)")
             return false
         }
 
@@ -59,7 +58,6 @@ class BLEScanManager(
         } else {
             val actualPrefix = packetData.take(minOf(6, packetData.size))
                 .joinToString(" ") { "%02X".format(it) }
-            Log.d(TAG, "isLadeSEBeacon: ❌ Signature invalide. Reçu: $actualPrefix, attendu: 02 01 06 14 09 42")
         }
         
         return isValid
@@ -289,10 +287,8 @@ class BLEScanManager(
                 if (manufacturerData != null && manufacturerData.isNotEmpty()) {
                     val hexString = manufacturerData.take(minOf(20, manufacturerData.size))
                         .joinToString(" ") { "%02X".format(it) }
-                    Log.d(TAG, "Scan reçu de $deviceAddress - Données: $hexString...")
 
                     if (isLadeSEBeacon(manufacturerData)) {
-                        Log.d(TAG, "✅ Penon détecté: $deviceAddress")
 
                         val currentCount = penonFrameCounts.getOrDefault(deviceAddress, 0) + 1
                         penonFrameCounts[deviceAddress] = currentCount

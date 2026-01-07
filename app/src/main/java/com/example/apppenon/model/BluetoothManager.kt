@@ -67,7 +67,6 @@ class BluetoothManager {
     private fun onDataReceived(data: String) {
         // Traiter les données reçues ici
         // Utilisez un Handler ou LiveData pour mettre à jour l'UI
-        println("Données reçues : $data")
     }
 
     fun disconnect() {
