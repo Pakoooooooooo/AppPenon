@@ -27,11 +27,10 @@ class PenonState {
         val buffer = ByteBuffer.wrap(rawData)
         buffer.order(ByteOrder.LITTLE_ENDIAN)
 
-        // Cherchons le marqueur 0x15ff (Manufacturer Specific Data)
         var startPos = -1
         for (i in 0 until rawData.size - 1) {
             if (rawData[i] == 0x15.toByte() && rawData[i + 1] == 0xff.toByte()) {
-                startPos = i + 2 // ⚠️ Juste après 15ff, PAS +4 !
+                startPos = i + 2
                 break
             }
         }
@@ -41,25 +40,29 @@ class PenonState {
             return
         }
 
-        Log.d(TAG, "STARTPOS: $startPos")
-
-        val fcBytes = rawData.slice(startPos until minOf(startPos + 4, rawData.size))
-        Log.d(TAG, "Frame count bytes (position $startPos): ${fcBytes.joinToString(" ") { "%02x".format(it) }}")
-
         buffer.position(startPos)
 
-        this.frame_cnt = buffer.int.toLong() and 0xFFFFFFFFL // uint32_t - 4 octets
-        Log.d(TAG, "Frame count décodé: $frame_cnt")
+        // uint32_t
+        this.frame_cnt = buffer.int.toLong() and 0xFFFFFFFFL
 
-        this.frame_type = buffer.get().toInt() and 0xFF      // uint8_t - 1 octet
-        this.vbat = buffer.short.toDouble()                  // int16_t - 2 octets
-        this.avr_mag_z = buffer.short.toDouble()             // int16_t - 2 octets
-        this.sd_mag_z = buffer.short.toDouble()              // int16_t - 2 octets
-        this.avr_acc = buffer.short.toDouble()               // int16_t - 2 octets
-        this.sd_acc = buffer.short.toDouble()                // int16_t - 2 octets
-        this.max_acc = buffer.short.toDouble()               // int16_t - 2 octets
+        // uint8_t
+        this.frame_type = buffer.get().toInt() and 0xFF
 
-        Log.d(TAG, "✅ Frame: $frame_cnt, Type: $frame_type, Vbat: $vbat, MagZ: $avr_mag_z")
+        // int16_t - Voltage en mV, convertir en V
+        this.vbat = buffer.short.toDouble() / 1000.0
+
+        // int16_t - Déjà en mT×10⁻³ selon la doc
+        this.avr_mag_z = buffer.short.toDouble()
+
+        // int16_t
+        this.sd_mag_z = buffer.short.toDouble()
+
+        // int16_t - Accélération en mg (milli-g)
+        this.avr_acc = buffer.short.toDouble()
+        this.sd_acc = buffer.short.toDouble()
+        this.max_acc = buffer.short.toDouble()
+
+        Log.d(TAG, "✅ Frame: $frame_cnt, Type: $frame_type, Vbat: $vbat V, MagZ: $avr_mag_z mT×10⁻³")
     }
     fun getFlowState(): Double {
         return this.avr_mag_z

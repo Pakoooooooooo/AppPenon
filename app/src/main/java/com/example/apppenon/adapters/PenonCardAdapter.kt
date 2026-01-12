@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.R
 import com.example.apppenon.model.BLEScanManager
 import com.example.apppenon.model.Penon
+import kotlin.math.abs
 
 class PenonCardAdapter (
     private val onPenonClick: ((Penon) -> Unit)? = null,
@@ -50,17 +51,17 @@ class PenonCardAdapter (
         holder.tvData.text = "Frame: ${penon.state.frame_cnt}\n" +
                 "Type: ${penon.state.frame_type}\n" +
                 "Vbat: ${penon.state.vbat} V\n" +
-                "MagZ: ${penon.state.avr_mag_z/1000} mT\n" +
-                "Acc: ${penon.state.avr_acc} g\n" +
-                "MaxAcc: ${penon.state.max_acc} g\n" +
-                "SDAcc: ${penon.state.sd_acc} g\n" +
-                "SDMagZ: ${penon.state.sd_mag_z/1000} mT\n" +
-                "SDFlowState: ${penon.state.sd_mag_z/1000} mT"
+                "MagZ: ${abs(penon.state.avr_mag_z/1000)} T\n" +
+                "AvrAcc: ${penon.state.avr_acc/1000} m.s-2\n" +
+                "MaxAcc: ${penon.state.max_acc/1000} m.s-2\n" +
+                "SDAcc: ${penon.state.sd_acc/1000} m.s-2\n" +
+                "SDMagZ: ${penon.state.sd_mag_z/1000} T\n" +
+                "SDFlowState: ${penon.state.sd_mag_z/1000} T"
 
         // ... (votre code RSSI et Batterie est correct)
 
         // 3. Logique d'attachement (Calculée avec le nouveau seuil)
-        val isAttached = penon.state.getFlowState() >= threshold
+        val isAttached = abs(penon.state.getFlowState()) >= threshold
 
         holder.tvAttachedStatus.apply {
             text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"
