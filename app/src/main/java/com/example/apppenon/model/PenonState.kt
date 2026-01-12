@@ -2,8 +2,6 @@ package com.example.apppenon.model
 
 import android.content.ContentValues.TAG
 import android.util.Log
-import android.widget.Toast
-import java.lang.System.console
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -24,34 +22,46 @@ class PenonState {
         Log.d(TAG, "RAW DATA HEX: ${rawData.joinToString("") { "%02x".format(it) }}")
         Log.d(TAG, "Taille réelle: ${rawData.size} octets")
 
-        // On vérifie qu'on a assez de données pour atteindre la fin de la structure
         if (rawData.size < 40) return
 
         val buffer = ByteBuffer.wrap(rawData)
         buffer.order(ByteOrder.LITTLE_ENDIAN)
 
-        // D'après votre HEX, la structure adv_mfg_data commence à l'index 25
-        // (Juste après le Company ID 0500)
-        buffer.position(25)
+        // Cherchons le marqueur 0x15ff (Manufacturer Specific Data)
+        var startPos = -1
+        for (i in 0 until rawData.size - 1) {
+            if (rawData[i] == 0x15.toByte() && rawData[i + 1] == 0xff.toByte()) {
+                startPos = i + 2 // ⚠️ Juste après 15ff, PAS +4 !
+                break
+            }
+        }
 
-        this.frame_cnt = buffer.int.toLong() and 0xFFFFFFFFL // uint32_t [cite: 21]
-        this.frame_type = buffer.get().toInt() and 0xFF      // uint8_t [cite: 22]
+        if (startPos == -1) {
+            Log.e(TAG, "Marqueur manufacturer data (15ff) non trouvé")
+            return
+        }
 
-        // Pas de padding visible dans votre HEX entre frame_type et Vbat
-        this.vbat = buffer.short.toDouble()                 // int16_t [cite: 23]
+        Log.d(TAG, "STARTPOS: $startPos")
 
-        // LECTURE DE mean_mag_z (avr_mag_z) [cite: 4, 18, 24]
-        val meanMagZ = buffer.short.toDouble()
-        this.avr_mag_z = meanMagZ
-        Log.d(TAG, "avr_mag_z (mean_mag_z): $meanMagZ")
+        val fcBytes = rawData.slice(startPos until minOf(startPos + 4, rawData.size))
+        Log.d(TAG, "Frame count bytes (position $startPos): ${fcBytes.joinToString(" ") { "%02x".format(it) }}")
 
-        this.sd_mag_z = buffer.short.toDouble()             // [cite: 25]
-        this.avr_acc = buffer.short.toDouble()              // [cite: 26]
-        this.sd_acc = buffer.short.toDouble()               // [cite: 27]
-        this.max_acc = buffer.short.toDouble()              // [cite: 28]
+        buffer.position(startPos)
+
+        this.frame_cnt = buffer.int.toLong() and 0xFFFFFFFFL // uint32_t - 4 octets
+        Log.d(TAG, "Frame count décodé: $frame_cnt")
+
+        this.frame_type = buffer.get().toInt() and 0xFF      // uint8_t - 1 octet
+        this.vbat = buffer.short.toDouble()                  // int16_t - 2 octets
+        this.avr_mag_z = buffer.short.toDouble()             // int16_t - 2 octets
+        this.sd_mag_z = buffer.short.toDouble()              // int16_t - 2 octets
+        this.avr_acc = buffer.short.toDouble()               // int16_t - 2 octets
+        this.sd_acc = buffer.short.toDouble()                // int16_t - 2 octets
+        this.max_acc = buffer.short.toDouble()               // int16_t - 2 octets
+
+        Log.d(TAG, "✅ Frame: $frame_cnt, Type: $frame_type, Vbat: $vbat, MagZ: $avr_mag_z")
     }
-
     fun getFlowState(): Double {
-        return this.avr_acc
+        return this.avr_mag_z
     }
 }

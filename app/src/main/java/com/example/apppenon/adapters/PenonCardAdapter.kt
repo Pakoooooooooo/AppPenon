@@ -47,7 +47,15 @@ class PenonCardAdapter (
         // 2. Mise à jour des textes
         holder.tvPenonName.text = nameToDisplay
         holder.tvMacAddress.text = "MAC: ${penon.macAddress}"
-        holder.tvData.text = penon.state.getFlowState().toString()
+        holder.tvData.text = "Frame: ${penon.state.frame_cnt}\n" +
+                "Type: ${penon.state.frame_type}\n" +
+                "Vbat: ${penon.state.vbat} V\n" +
+                "MagZ: ${penon.state.avr_mag_z/1000} mT\n" +
+                "Acc: ${penon.state.avr_acc} g\n" +
+                "MaxAcc: ${penon.state.max_acc} g\n" +
+                "SDAcc: ${penon.state.sd_acc} g\n" +
+                "SDMagZ: ${penon.state.sd_mag_z/1000} mT\n" +
+                "SDFlowState: ${penon.state.sd_mag_z/1000} mT"
 
         // ... (votre code RSSI et Batterie est correct)
 
