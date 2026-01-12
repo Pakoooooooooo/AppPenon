@@ -16,6 +16,7 @@ import com.example.apppenon.R
 import com.example.apppenon.data.PenonSettingsRepository
 import com.example.apppenon.model.Penon
 import com.example.apppenon.model.PenonDecodedData
+import com.example.apppenon.utils.VoiceNotificationManager
 
 /**
  * Activité de modification des paramètres d'un Penon.
@@ -33,6 +34,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
     lateinit var penon: Penon
     private lateinit var repository: PenonSettingsRepository
+    private lateinit var voiceNotificationManager: VoiceNotificationManager
     
     // Variable pour stocker les dernières données décodées
     private var lastDecodedData: PenonDecodedData? = null
@@ -102,6 +104,13 @@ class PenonsSettingsActivity : AppCompatActivity() {
         currentActivity = null
         Log.d("PenonsSettings", "⏸️ onPause: Activity pas en focus")
     }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        // Libérer les ressources TTS
+        voiceNotificationManager.release()
+        Log.d("PenonsSettings", "🛑 onDestroy: Ressources libérées")
+    }
 
     @SuppressLint("CutPasteId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -113,6 +122,9 @@ class PenonsSettingsActivity : AppCompatActivity() {
         
         // Initialiser le Repository
         repository = PenonSettingsRepository(this)
+        
+        // Initialiser le gestionnaire de notifications vocales
+        voiceNotificationManager = VoiceNotificationManager(this)
 
         // Charger les settings depuis SharedPreferences
         // (pour s'assurer qu'on a les dernières valeurs)
@@ -241,6 +253,9 @@ class PenonsSettingsActivity : AppCompatActivity() {
         tableDecodedData.removeAllViews()
         tvNoData.visibility = android.view.View.GONE
         
+        // 🔊 Déterminer l'état du Penon et annoncer le changement si nécessaire
+        checkAndAnnounceStateChange(data)
+        
         val displayMap = data.toDisplayMap()
         
         for ((key, value) in displayMap) {
@@ -279,6 +294,51 @@ class PenonsSettingsActivity : AppCompatActivity() {
             
             tableDecodedData.addView(row)
         }
+    }
+    
+    /**
+     * Détecte et annonce les changements d'état du Penon (attaché/détaché).
+     * 🔊 Lance une notification vocale si l'état change.
+     */
+
+    private fun checkAndAnnounceStateChange(data: PenonDecodedData) {
+        val isCurrentlyAttached = determineAttachedState(data)
+
+        val previousState = penon.lastAttachedState
+
+        // Première fois → on initialise sans parler
+        if (previousState == null) {
+            penon.lastAttachedState = isCurrentlyAttached
+            Log.d("VoiceNotification", "🆕 État initial = $isCurrentlyAttached (pas d'annonce)")
+            return
+        }
+
+        // Changement réel
+        if (previousState != isCurrentlyAttached) {
+            Log.d(
+                "VoiceNotification",
+                "🔁 Changement d'état: $previousState → $isCurrentlyAttached"
+            )
+
+            voiceNotificationManager.announceStateChange(
+                penon.penonName,
+                isCurrentlyAttached
+            )
+
+            penon.lastAttachedState = isCurrentlyAttached
+        }
+    }
+
+
+    /**
+     * Détermine si le Penon est attaché ou détaché en fonction des données décodées.
+     * Un Penon est considéré comme attaché si l'accélération est détectée.
+     */
+    private fun determineAttachedState(data: PenonDecodedData): Boolean {
+        // Criteria pour être "attaché": 
+        // - Mean acceleration doit être > 0
+        // - SD acceleration doit être > 0
+        return data.meanAcc > 0 && data.sdAcc > 0
     }
     
     /**

@@ -56,5 +56,7 @@ data class Penon (
     var detachedThresh: Double = 10.0,
     var count: Boolean = false,
     var ids: Boolean = false,
-    var timeline: Int = 0
+    var timeline: Int = 0,
+    // État du Penon pour les notifications vocales
+    @Transient var lastAttachedState: Boolean? = null
 ): Serializable
