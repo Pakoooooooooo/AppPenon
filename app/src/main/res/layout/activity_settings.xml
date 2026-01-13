@@ -1,135 +1,166 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F5F5F5">
 
-    <!-- Header fixe -->
     <LinearLayout
-        android:id="@+id/header_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_alignParentTop="true">
+        android:padding="16dp">
 
-        <RelativeLayout
+        <!-- En-tête -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="@android:color/white"
-            android:elevation="4dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_centerVertical="true"
-                android:text="Paramètres"
-                android:textAlignment="center"
-                android:textColor="#000000"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
 
             <Button
                 android:id="@+id/backBtn"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:text="✕"
-                android:textSize="16sp"
-                android:textColor="@color/sea"
-                android:textStyle="bold"/>
-        </RelativeLayout>
+                android:text="←"
+                android:textSize="24sp" />
 
-        <!-- Cyan divider -->
-        <View
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Paramètres"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#00897B"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+        <!-- Section Mode -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mode d'affichage"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#00897B"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/modeBtn"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/sea" />
-    </LinearLayout>
+            android:layout_height="wrap_content"
+            android:text="Standard"
+            android:textColor="@android:color/white"
+            android:padding="12dp"
+            android:layout_marginBottom="24dp" />
 
-    <!-- Contenu scrollable -->
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/header_layout">
+        <!-- Section Enregistrement -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enregistrement"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#00897B"
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@android:color/white"
+            android:padding="12dp"
+            android:layout_marginBottom="24dp">
 
-
-            <!-- RSSI Setting -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:background="@android:color/white"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_weight="1"
+                android:text="Enregistrer les données"
+                android:textSize="14sp"
+                android:textColor="#333333" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:text="Mode"
-                        android:layout_weight="1"
-                        android:textColor="@color/sea"
-                        android:textSize="16sp" />
-
-                    <Button
-                        android:id="@+id/modeBtn"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Standard"
-                        android:layout_marginEnd="8dp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- RSSI Setting -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switch_rec"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@android:color/white"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:text="Record"
-                        android:textColor="@color/sea"
-                        android:textSize="16sp" />
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switch_rec"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:checked="false"
-                        app:trackTint="@color/grey"
-                        app:thumbTint="@color/sea"/>
-                </RelativeLayout>
-
-            </LinearLayout>
+                android:checked="false" />
 
         </LinearLayout>
-    </ScrollView>
 
+        <!-- 🆕 Section Simulation -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mode Simulation"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#00897B"
+            android:layout_marginBottom="8dp" />
 
-</RelativeLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@android:color/white"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Activer la simulation"
+                android:textSize="14sp"
+                android:textColor="#333333" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switch_simulation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false" />
+
+        </LinearLayout>
+
+        <!-- 🆕 Bouton sélection fichier CSV -->
+        <Button
+            android:id="@+id/btn_select_csv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📁 Sélectionner un fichier CSV"
+            android:textColor="@android:color/white"
+            android:padding="12dp"
+            android:enabled="false"
+            android:layout_marginBottom="8dp" />
+
+        <!-- 🆕 Affichage du fichier sélectionné -->
+        <TextView
+            android:id="@+id/tv_selected_file"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Aucun fichier sélectionné"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:textStyle="italic"
+            android:gravity="center"
+            android:padding="12dp"
+            android:background="#F0F0F0"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Information -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ℹ️ En mode simulation, les données proviennent d'un fichier CSV enregistré au lieu du scan BLE réel."
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:padding="12dp"
+            android:background="#E3F2FD" />
+
+    </LinearLayout>
+
+</ScrollView>

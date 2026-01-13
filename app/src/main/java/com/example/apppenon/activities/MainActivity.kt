@@ -17,14 +17,16 @@ import com.example.apppenon.model.PenonReader
 import com.example.apppenon.adapters.PenonCardAdapter
 import com.example.apppenon.data.PenonSettingsRepository
 import com.example.apppenon.R
+import com.example.apppenon.simulation.SimulationConfig
+import com.example.apppenon.simulation.CSVSimulator
 import kotlinx.coroutines.launch
 
 /**
- * Activité principale - VERSION DYNAMIQUE
+ * Activité principale - VERSION DYNAMIQUE avec support de simulation.
  *
  * ✅ Détecte automatiquement les Penons via BLE
  * ✅ Crée dynamiquement les objets Penon
- * ✅ Plus de Penon1/Penon2 prédéfinis
+ * ✅ 🆕 Support du mode simulation depuis CSV
  */
 class MainActivity : AppCompatActivity() {
 
@@ -35,20 +37,17 @@ class MainActivity : AppCompatActivity() {
     lateinit var etFileName: EditText
     lateinit var rvPenonCards: RecyclerView
 
-    // Adaptateur RecyclerView
     lateinit var penonCardAdapter: PenonCardAdapter
 
-    // Managers délégués
     private lateinit var uiStateManager: UIStateManager
     private lateinit var penonSettingsManager: PenonSettingsManager
-
-    // Repository centralisé
     private lateinit var repository: PenonSettingsRepository
 
-    // Lecteur BLE
     val PR = PenonReader(this)
+    
+    // 🆕 Simulateur CSV
+    private lateinit var csvSimulator: CSVSimulator
 
-    // ✅ Liste DYNAMIQUE - plus de valeurs par défaut !
     val deviceList = mutableListOf<Penon>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,29 +55,20 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialiser le Repository
         repository = PenonSettingsRepository(this)
+        
+        // 🆕 Initialiser le simulateur
+        csvSimulator = CSVSimulator(this, PR.bleScanManager)
 
-        // Initialiser les vues
         initializeViews()
-
-        // ✅ Charger les Penons déjà connus depuis le Repository
         loadKnownPenons()
 
-        // Initialiser les managers
         uiStateManager = UIStateManager(this)
-        penonSettingsManager = PenonSettingsManager(
-            this,
-            deviceList
-        )
+        penonSettingsManager = PenonSettingsManager(this, deviceList)
 
-        // Initialiser le RecyclerView
         penonCardAdapter = PenonCardAdapter(
             onPenonClick = { detectedPenon ->
-                // Trouver ou créer le Penon correspondant
                 val penon = getOrCreatePenon(detectedPenon.macAddress)
-
-                // Ouvrir l'activité des paramètres
                 val intent = Intent(this, PenonsSettingsActivity::class.java)
                 intent.putExtra("penon_data", penon)
                 startActivity(intent)
@@ -88,7 +78,6 @@ class MainActivity : AppCompatActivity() {
         rvPenonCards.layoutManager = LinearLayoutManager(this)
         rvPenonCards.adapter = penonCardAdapter
 
-        // Vérifier la disponibilité de Bluetooth
         if (PR.bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth non disponible", Toast.LENGTH_LONG).show()
             finish()
@@ -97,19 +86,11 @@ class MainActivity : AppCompatActivity() {
 
         PR.requestBluetoothPermissions()
 
-        // Configurer les listeners des boutons
         setupButtonListeners()
-
-        // Mettre à jour l'UI
         uiStateManager.updateUIState(PR)
-
-        // Observer les changements de settings en temps réel
         observeSettingsChanges()
     }
 
-    /**
-     * ✅ Charge tous les Penons déjà connus depuis SharedPreferences
-     */
     private fun loadKnownPenons() {
         val knownMacs = repository.getAllKnownMacAddresses()
 
@@ -128,15 +109,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * ✅ Récupère un Penon existant ou en crée un nouveau
-     */
     fun getOrCreatePenon(macAddress: String): Penon {
-        // Chercher dans la liste existante
         var penon = deviceList.find { it.macAdress == macAddress }
 
         if (penon == null) {
-            // Créer un nouveau Penon avec des valeurs par défaut
             penon = Penon(
                 penonName = "Penon ${macAddress.takeLast(5)}",
                 macAdress = macAddress,
@@ -151,10 +127,7 @@ class MainActivity : AppCompatActivity() {
                 detachedThresh = 100.0
             )
 
-            // Charger depuis le Repository (au cas où il existe déjà)
             repository.loadPenon(penon)
-
-            // Ajouter à la liste
             deviceList.add(penon)
 
             Toast.makeText(
@@ -167,21 +140,15 @@ class MainActivity : AppCompatActivity() {
         return penon
     }
 
-    /**
-     * ✅ Observer les changements de settings en temps réel
-     */
     private fun observeSettingsChanges() {
         lifecycleScope.launch {
             repository.observeAllPenons().collect { allPenons ->
-                // Mettre à jour deviceList avec les nouvelles valeurs
                 allPenons.forEach { (mac, penon) ->
                     val index = deviceList.indexOfFirst { it.macAdress == mac }
                     if (index != -1 && penon != null) {
                         deviceList[index] = penon.copy()
                     }
                 }
-
-                // Mettre à jour l'adaptateur
                 penonCardAdapter.notifyDataSetChanged()
             }
         }
@@ -189,13 +156,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-
-        // Recharger tous les Penons connus
         deviceList.forEach { penon ->
             repository.loadPenon(penon)
         }
-
-        // Mettre à jour l'adaptateur
         penonCardAdapter.notifyDataSetChanged()
     }
 
@@ -209,25 +172,87 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtonListeners() {
-        // Démarrer le scan
+        // 🆕 Démarrer le scan (BLE ou Simulation)
         btnStartScan.setOnClickListener {
-            PR.TARGET_MAC_ADDRESS1 = ""
-            PR.TARGET_MAC_ADDRESS2 = ""
-            PR.startScanning()
+            if (SimulationConfig.isReadyToSimulate()) {
+                startSimulation()
+            } else if (SimulationConfig.isSimulationMode) {
+                Toast.makeText(
+                    this,
+                    "Veuillez sélectionner un fichier CSV dans les paramètres",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                startRealBLEScan()
+            }
             updateColor()
         }
 
-        // Arrêter le scan
+        // 🆕 Arrêter le scan (BLE ou Simulation)
         btnStopScan.setOnClickListener {
-            PR.stopScanning()
+            if (csvSimulator.isRunning()) {
+                stopSimulation()
+            } else {
+                stopRealBLEScan()
+            }
             updateColor()
         }
 
-        // Effacer les données
         btnClearData.setOnClickListener {
             penonCardAdapter.clearAll()
             updateColor()
         }
+    }
+
+    /**
+     * 🆕 Démarre la simulation depuis le fichier CSV.
+     */
+    private fun startSimulation() {
+        val uri = SimulationConfig.csvFileUri ?: return
+        
+        // Charger le fichier CSV
+        val success = csvSimulator.loadCSVFile(uri)
+        
+        if (success) {
+            csvSimulator.startSimulation()
+            tvStatus.text = "🎬 Simulation en cours (${csvSimulator.getFrameCount()} trames)"
+            Toast.makeText(
+                this,
+                "Simulation démarrée : ${SimulationConfig.csvFileName}",
+                Toast.LENGTH_SHORT
+            ).show()
+        } else {
+            Toast.makeText(
+                this,
+                "Erreur : impossible de charger le fichier CSV",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    /**
+     * 🆕 Arrête la simulation.
+     */
+    private fun stopSimulation() {
+        csvSimulator.stopSimulation()
+        tvStatus.text = "⏹️ Simulation arrêtée"
+        Toast.makeText(this, "Simulation arrêtée", Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Démarre le scan BLE réel.
+     */
+    private fun startRealBLEScan() {
+        PR.TARGET_MAC_ADDRESS1 = ""
+        PR.TARGET_MAC_ADDRESS2 = ""
+        PR.startScanning()
+    }
+
+    /**
+     * Arrête le scan BLE réel.
+     */
+    private fun stopRealBLEScan() {
+        PR.stopScanning()
     }
 
     fun updateColor(){
@@ -253,6 +278,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         try {
+            csvSimulator.stopSimulation()
             PR.stopScanning()
             PR.closeCSVFiles()
         } catch (e: Exception) {
