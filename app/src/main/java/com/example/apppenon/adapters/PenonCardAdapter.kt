@@ -51,7 +51,7 @@ class PenonCardAdapter (
         holder.tvData.text = "Frame: ${penon.state.frame_cnt}\n" +
                 "Type: ${penon.state.frame_type}\n" +
                 "Vbat: ${penon.state.vbat} V\n" +
-                "AvrMagZ: ${abs(penon.state.avr_mag_z/1000)} T\n" +
+                "MagZ: ${abs(penon.state.avr_mag_z/1000)} T\n" +
                 "AvrAcc: ${penon.state.avr_acc/1000} m.s-2\n" +
                 "MaxAcc: ${penon.state.max_acc/1000} m.s-2\n" +
                 "SDAcc: ${penon.state.sd_acc/1000} m.s-2\n" +
