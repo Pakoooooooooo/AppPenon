@@ -34,17 +34,28 @@ class SettingActivity : AppCompatActivity() {
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
+                // 🔑 IMPORTANT : Prendre la permission persistante sur l'URI
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (e: Exception) {
+                    // Certains fichiers ne supportent pas les permissions persistantes
+                    android.util.Log.w("SettingActivity", "Impossible de prendre permission persistante", e)
+                }
+
                 // Sauvegarder l'URI du fichier sélectionné
                 SimulationConfig.csvFileUri = uri
-                
+
                 // Extraire le nom du fichier pour l'affichage
                 val fileName = getFileName(uri)
                 SimulationConfig.csvFileName = fileName
                 tvSelectedFile.text = "📄 $fileName"
-                
+
                 Toast.makeText(
-                    this, 
-                    "Fichier sélectionné : $fileName", 
+                    this,
+                    "Fichier sélectionné : $fileName",
                     Toast.LENGTH_SHORT
                 ).show()
             }

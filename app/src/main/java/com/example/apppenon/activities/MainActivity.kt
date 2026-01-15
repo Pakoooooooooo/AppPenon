@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var btnStartScan: Button
     lateinit var btnStopScan: Button
     lateinit var btnClearData: Button
+    lateinit var btnGlobalSettings: Button
     lateinit var etFileName: EditText
     lateinit var rvPenonCards: RecyclerView
 
@@ -160,6 +161,11 @@ class MainActivity : AppCompatActivity() {
             repository.loadPenon(penon)
         }
         penonCardAdapter.notifyDataSetChanged()
+
+        // Si on revient des paramètres et que le mode simulation a été désactivé
+        if (!SimulationConfig.isSimulationMode) {
+            ensureSimulationStopped()
+        }
     }
 
     private fun initializeViews() {
@@ -167,6 +173,7 @@ class MainActivity : AppCompatActivity() {
         btnStartScan = findViewById(R.id.btnStartScan)
         btnStopScan = findViewById(R.id.btnStopScan)
         btnClearData = findViewById(R.id.btnClearData)
+        btnGlobalSettings = findViewById(R.id.btnGlobalSettings)
         etFileName = findViewById(R.id.etFileName)
         rvPenonCards = findViewById(R.id.rvPenonCards)
     }
@@ -190,17 +197,43 @@ class MainActivity : AppCompatActivity() {
 
         // 🆕 Arrêter le scan (BLE ou Simulation)
         btnStopScan.setOnClickListener {
-            if (csvSimulator.isRunning()) {
-                stopSimulation()
+            if (SimulationConfig.isSimulationMode) {
+                if (csvSimulator.isRunning()) {
+                    // Mettre en pause
+                    csvSimulator.pauseSimulation()
+                    tvStatus.text = "⏸️ Simulation en pause"
+                    btnStopScan.text = "▶️ Reprendre"
+                    Toast.makeText(this, "Simulation en pause", Toast.LENGTH_SHORT).show()
+                } else if (csvSimulator.isPaused()) {
+                    // Reprendre
+                    csvSimulator.resumeSimulation()
+                    tvStatus.text = "🎬 Simulation en cours (${csvSimulator.getFrameCount()} trames)"
+                    btnStopScan.text = "⏸️ Pause"
+                    Toast.makeText(this, "Simulation reprise", Toast.LENGTH_SHORT).show()
+                }
             } else {
                 stopRealBLEScan()
+                btnStopScan.text = "⏹️ Arrêter"
             }
             updateColor()
         }
 
         btnClearData.setOnClickListener {
             penonCardAdapter.clearAll()
+
+            // Si en mode simulation, arrêter et réinitialiser
+            if (SimulationConfig.isSimulationMode) {
+                csvSimulator.reset()
+                tvStatus.text = "En attente..."
+            }
+
             updateColor()
+        }
+
+        // 🆕 Bouton Paramètres globaux (Simulation)
+        btnGlobalSettings.setOnClickListener {
+            val intent = Intent(this, SettingActivity::class.java)
+            startActivity(intent)
         }
     }
 
@@ -209,13 +242,14 @@ class MainActivity : AppCompatActivity() {
      */
     private fun startSimulation() {
         val uri = SimulationConfig.csvFileUri ?: return
-        
+
         // Charger le fichier CSV
         val success = csvSimulator.loadCSVFile(uri)
-        
+
         if (success) {
             csvSimulator.startSimulation()
             tvStatus.text = "🎬 Simulation en cours (${csvSimulator.getFrameCount()} trames)"
+            btnStopScan.text = "⏸️ Pause"
             Toast.makeText(
                 this,
                 "Simulation démarrée : ${SimulationConfig.csvFileName}",
@@ -231,12 +265,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 🆕 Arrête la simulation.
+     * 🆕 Arrête complètement la simulation.
      */
     private fun stopSimulation() {
         csvSimulator.stopSimulation()
         tvStatus.text = "⏹️ Simulation arrêtée"
+        btnStopScan.text = "⏹️ Arrêter"
         Toast.makeText(this, "Simulation arrêtée", Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Arrête la simulation si elle est en cours (appelé lors du changement de mode).
+     */
+    private fun ensureSimulationStopped() {
+        if (csvSimulator.isRunning() || csvSimulator.isPaused()) {
+            csvSimulator.stopSimulation()
+            tvStatus.text = "En attente..."
+            btnStopScan.text = "⏹️ Arrêter"
+        }
     }
 
     /**

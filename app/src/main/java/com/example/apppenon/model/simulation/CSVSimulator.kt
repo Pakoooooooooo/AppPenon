@@ -24,6 +24,7 @@ class CSVSimulator(
     private val TAG = "CSVSimulator"
     private val handler = Handler(Looper.getMainLooper())
     private var isSimulating = false
+    private var isPaused = false
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
 
     // Liste des trames CSV à rejouer
@@ -46,33 +47,50 @@ class CSVSimulator(
      */
     fun loadCSVFile(uri: Uri): Boolean {
         return try {
+            Log.d(TAG, "📂 Tentative de chargement du fichier : $uri")
+
             frames.clear()
             currentFrameIndex = 0
 
             val inputStream = context.contentResolver.openInputStream(uri)
+
+            if (inputStream == null) {
+                Log.e(TAG, "❌ Impossible d'ouvrir l'InputStream - Permission refusée ?")
+                return false
+            }
+
             val reader = BufferedReader(InputStreamReader(inputStream))
 
             // Ignorer la ligne d'en-tête
-            reader.readLine()
+            val header = reader.readLine()
+            Log.d(TAG, "📋 En-tête CSV : $header")
 
             var line: String?
+            var lineCount = 0
             while (reader.readLine().also { line = it } != null) {
-                line?.let { parseLine(it) }
+                lineCount++
+                line?.let {
+                    parseLine(it)
+                    if (lineCount <= 3) {
+                        Log.d(TAG, "📝 Ligne $lineCount : $it")
+                    }
+                }
             }
 
             reader.close()
 
             if (frames.isNotEmpty()) {
                 firstFrameTimestamp = frames[0].timestamp
-                Log.d(TAG, "✅ CSV chargé : ${frames.size} trames")
+                Log.d(TAG, "✅ CSV chargé : ${frames.size} trames sur $lineCount lignes")
                 true
             } else {
-                Log.e(TAG, "❌ Aucune trame trouvée dans le CSV")
+                Log.e(TAG, "❌ Aucune trame trouvée dans le CSV ($lineCount lignes lues)")
                 false
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur chargement CSV", e)
+            Log.e(TAG, "❌ Erreur chargement CSV : ${e.message}", e)
+            e.printStackTrace()
             false
         }
     }
@@ -86,28 +104,47 @@ class CSVSimulator(
             // Exemple: 2025-11-17 17:43:45.756,EC:69:0B:19:32:8F,1,-66,46,"02 01 06 14 09 42 6C..."
 
             val parts = line.split(",")
-            if (parts.size < 6) return
+            if (parts.size < 6) {
+                Log.w(TAG, "⚠️ Ligne ignorée (moins de 6 colonnes) : $line")
+                return
+            }
 
-                    val timestamp = dateFormat.parse(parts[0])?.time ?: return
-                    val macAddress = parts[1]
-            val frameNumber = parts[2].toIntOrNull() ?: return
-                    val rssi = parts[3].toIntOrNull() ?: return
-                    val dataSize = parts[4].toIntOrNull() ?: return
+            val timestamp = dateFormat.parse(parts[0])?.time
+            if (timestamp == null) {
+                Log.w(TAG, "⚠️ Timestamp invalide : ${parts[0]}")
+                return
+            }
 
-                    // Extraire les données hex (entre guillemets)
-                    val rawHexData = line.substringAfter("\"").substringBefore("\"")
+            val macAddress = parts[1]
+            val frameNumber = parts[2].toIntOrNull()
+            val rssi = parts[3].toIntOrNull()
+            val dataSize = parts[4].toIntOrNull()
+
+            if (frameNumber == null || rssi == null || dataSize == null) {
+                Log.w(TAG, "⚠️ Données numériques invalides : frame=$frameNumber, rssi=$rssi, size=$dataSize")
+                return
+            }
+
+            // Extraire les données hex (entre guillemets)
+            val rawHexData = line.substringAfter("\"").substringBefore("\"")
+
+            if (rawHexData.isBlank()) {
+                Log.w(TAG, "⚠️ Données hex vides pour frame $frameNumber")
+                return
+            }
 
             frames.add(CSVFrame(
-                    timestamp = timestamp,
-                    macAddress = macAddress,
-                    frameNumber = frameNumber,
-                    rssi = rssi,
-                    dataSize = dataSize,
-                    rawHexData = rawHexData
+                timestamp = timestamp,
+                macAddress = macAddress,
+                frameNumber = frameNumber,
+                rssi = rssi,
+                dataSize = dataSize,
+                rawHexData = rawHexData
             ))
 
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur parsing ligne: $line", e)
+            Log.e(TAG, "❌ Erreur parsing ligne : ${e.message}", e)
+            Log.e(TAG, "   Ligne : $line")
         }
     }
 
@@ -121,6 +158,7 @@ class CSVSimulator(
         }
 
         isSimulating = true
+        isPaused = false
         currentFrameIndex = 0
         simulationStartTime = System.currentTimeMillis()
 
@@ -130,10 +168,33 @@ class CSVSimulator(
     }
 
     /**
-     * Arrête la simulation.
+     * Met en pause la simulation.
+     */
+    fun pauseSimulation() {
+        if (isSimulating && !isPaused) {
+            isPaused = true
+            handler.removeCallbacksAndMessages(null)
+            Log.d(TAG, "⏸️ Simulation en pause (frame ${currentFrameIndex}/${frames.size})")
+        }
+    }
+
+    /**
+     * Reprend la simulation après une pause.
+     */
+    fun resumeSimulation() {
+        if (isSimulating && isPaused) {
+            isPaused = false
+            Log.d(TAG, "▶️ Reprise simulation (frame ${currentFrameIndex}/${frames.size})")
+            scheduleNextFrame()
+        }
+    }
+
+    /**
+     * Arrête complètement la simulation et réinitialise.
      */
     fun stopSimulation() {
         isSimulating = false
+        isPaused = false
         handler.removeCallbacksAndMessages(null)
         Log.d(TAG, "⏹️ Simulation arrêtée")
     }
@@ -142,9 +203,11 @@ class CSVSimulator(
      * Planifie l'envoi de la prochaine trame selon le timestamp.
      */
     private fun scheduleNextFrame() {
-        if (!isSimulating || currentFrameIndex >= frames.size) {
-            Log.d(TAG, "✅ Simulation terminée")
-            isSimulating = false
+        if (!isSimulating || isPaused || currentFrameIndex >= frames.size) {
+            if (currentFrameIndex >= frames.size) {
+                Log.d(TAG, "✅ Simulation terminée")
+                isSimulating = false
+            }
             return
         }
 
@@ -206,7 +269,12 @@ class CSVSimulator(
     /**
      * Vérifie si la simulation est en cours.
      */
-    fun isRunning(): Boolean = isSimulating
+    fun isRunning(): Boolean = isSimulating && !isPaused
+
+    /**
+     * Vérifie si la simulation est en pause.
+     */
+    fun isPaused(): Boolean = isPaused
 
     /**
      * Retourne le nombre de trames chargées.
@@ -219,5 +287,14 @@ class CSVSimulator(
     fun getProgress(): Float {
         return if (frames.isEmpty()) 0f
         else currentFrameIndex.toFloat() / frames.size.toFloat()
+    }
+
+    /**
+     * Réinitialise la simulation au début.
+     */
+    fun reset() {
+        stopSimulation()
+        currentFrameIndex = 0
+        Log.d(TAG, "🔄 Simulation réinitialisée")
     }
 }
