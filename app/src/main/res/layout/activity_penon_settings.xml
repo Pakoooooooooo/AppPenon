@@ -13,34 +13,53 @@
         android:orientation="vertical"
         android:layout_alignParentTop="true">
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
             android:background="@android:color/white"
-            android:elevation="4dp">
+            android:elevation="4dp"
+            android:orientation="vertical"
+            android:padding="12dp">
 
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_alignParentStart="true"
+                    android:text="Settings"
+                    android:textColor="#000000"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/backBtn"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:text="✕"
+                    android:textSize="24sp"
+                    android:textColor="#000000" />
+            </RelativeLayout>
+
+            <!-- MAC Address Display -->
             <TextView
+                android:id="@+id/tvMacAddress"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerVertical="true"
-                android:layout_marginStart="24dp"
-                android:text="Settings"
-                android:textColor="#000000"
-                android:textSize="24sp"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/backBtn"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:layout_marginEnd="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:text="✕"
-                android:textSize="24sp"
-                android:textColor="#000000" />
-        </RelativeLayout>
+                android:layout_marginTop="8dp"
+                android:layout_marginStart="4dp"
+                android:text="MAC: --:--:--:--:--:--"
+                android:textColor="#00897B"
+                android:textSize="12sp"
+                android:textStyle="italic" />
+        </LinearLayout>
 
         <!-- Cyan divider -->
         <View
@@ -778,7 +797,7 @@
                         android:layout_height="wrap_content"
                         android:layout_alignParentStart="true"
                         android:layout_centerVertical="true"
-                        android:text="detached"
+                        android:text="Détecter détachement"
                         android:textColor="#000000"
                         android:textSize="16sp" />
 
@@ -791,39 +810,82 @@
                         android:checked="true" />
                 </RelativeLayout>
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Seuil détachement"
+                    android:textColor="#999999"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="4dp" />
+
+                <EditText
+                    android:id="@+id/edit_detached"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:inputType="numberDecimal"
+                    android:text="10"
+                    android:gravity="center"
+                    android:background="@android:drawable/edit_text"
+                    android:textColor="#000000"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0" />
+
+            <!-- ATTACHÉ/DÉTACHÉ Setting -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/white"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="🔗 SEUIL ATTACHÉ/DÉTACHÉ"
+                    android:textColor="#00BCD4"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Le Penon est ATTACHÉ si le Flow State ≥ au seuil"
+                    android:textColor="#666666"
+                    android:textSize="13sp" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
 
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="detached threshhold"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_detached"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="numberDecimal"
-                            android:text="10"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
+                        android:text="Seuil (Flow State)"
+                        android:textColor="#000000"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
+
+                <EditText
+                    android:id="@+id/edit_attached_threshold"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:inputType="number"
+                    android:hint="Ex: 500"
+                    android:gravity="center"
+                    android:background="@android:drawable/edit_text"
+                    android:textColor="#000000"
+                    android:textSize="16sp" />
             </LinearLayout>
 
             <View
@@ -923,6 +985,43 @@
                     android:background="@android:drawable/edit_text"
                     android:textColor="#000000"
                     android:textSize="16sp" />
+            </LinearLayout>
+
+            <!-- Données Décodées Tableau -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/white"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="📊 DONNÉES DÉCODÉES"
+                    android:textColor="#00897B"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TableLayout
+                    android:id="@+id/tableDecodedData"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:stretchColumns="1">
+
+                    <!-- Les lignes seront ajoutées dynamiquement par le code -->
+                </TableLayout>
+
+                <TextView
+                    android:id="@+id/tvNoData"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="En attente de données du Penon..."
+                    android:textColor="#999999"
+                    android:textSize="13sp"
+                    android:textStyle="italic" />
             </LinearLayout>
 
             <!-- Bottom spacing -->

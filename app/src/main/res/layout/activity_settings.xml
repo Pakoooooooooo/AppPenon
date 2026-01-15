@@ -20,11 +20,11 @@
             android:elevation="4dp">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
-                android:layout_marginStart="24dp"
-                android:text="Settings"
+                android:text="Paramètres"
+                android:textAlignment="center"
                 android:textColor="#000000"
                 android:textSize="24sp"
                 android:textStyle="bold" />
@@ -35,18 +35,18 @@
                 android:layout_height="48dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:layout_marginEnd="8dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:text="✕"
-                android:textSize="24sp"
-                android:textColor="#000000" />
+                android:textSize="16sp"
+                android:textColor="@color/sea"
+                android:textStyle="bold"/>
         </RelativeLayout>
 
         <!-- Cyan divider -->
         <View
             android:layout_width="match_parent"
-            android:layout_height="8dp"
-            android:background="#00BCD4" />
+            android:layout_height="1dp"
+            android:background="@color/sea" />
     </LinearLayout>
 
     <!-- Contenu scrollable -->
@@ -60,12 +60,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Penon Name Setting -->
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="8dp"
-                android:background="#E0E0E0" />
 
             <!-- RSSI Setting -->
             <LinearLayout
@@ -87,7 +81,7 @@
                         android:layout_centerVertical="true"
                         android:text="Mode"
                         android:layout_weight="1"
-                        android:textColor="#000000"
+                        android:textColor="@color/sea"
                         android:textSize="16sp" />
 
                     <Button
@@ -118,7 +112,7 @@
                         android:layout_alignParentStart="true"
                         android:layout_centerVertical="true"
                         android:text="Record"
-                        android:textColor="#000000"
+                        android:textColor="@color/sea"
                         android:textSize="16sp" />
 
                     <androidx.appcompat.widget.SwitchCompat
@@ -127,7 +121,9 @@
                         android:layout_height="wrap_content"
                         android:layout_alignParentEnd="true"
                         android:layout_centerVertical="true"
-                        android:checked="true" />
+                        android:checked="false"
+                        app:trackTint="@color/grey"
+                        app:thumbTint="@color/sea"/>
                 </RelativeLayout>
 
             </LinearLayout>
