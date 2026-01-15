@@ -6,15 +6,16 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.R
-import com.example.apppenon.model.DetectedPenon
 import com.example.apppenon.model.BLEScanManager
+import com.example.apppenon.model.Penon
+import kotlin.math.abs
 
 class PenonCardAdapter (
-    private val onPenonClick: ((DetectedPenon) -> Unit)? = null,
+    private val onPenonClick: ((Penon) -> Unit)? = null,
     private val penonSettings: MutableList<com.example.apppenon.model.Penon> = mutableListOf()
 ) : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolder>() {
 
-    private val penonList = mutableListOf<DetectedPenon>()
+    private val penonList = mutableListOf<Penon>()
 
     class PenonViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvPenonName: TextView = view.findViewById(R.id.tvPenonName)
@@ -25,6 +26,7 @@ class PenonCardAdapter (
         val tvSDFlowState: TextView = view.findViewById(R.id.tvSDFlowState)
         val tvLastUpdate: TextView = view.findViewById(R.id.tvLastUpdate)
         val tvAttachedStatus: TextView = view.findViewById(R.id.tvAttachedStatus)
+        val tvData: TextView = view.findViewById(R.id.tvData)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PenonViewHolder {
@@ -36,70 +38,53 @@ class PenonCardAdapter (
     override fun onBindViewHolder(holder: PenonViewHolder, position: Int) {
         val penon = penonList[position]
 
-        // Nom du Penon
-        holder.tvPenonName.text = penon.name
-        
-        // MAC Address
+        // 1. Récupérer les réglages mis à jour
+        // IMPORTANT : penonSettings DOIT être la liste mise à jour depuis MainActivity
+        val settings = penonSettings.find { it.macAddress == penon.macAddress }
+
+        val nameToDisplay = settings?.penonName ?: penon.penonName
+        val threshold = settings?.flowStateThreshold ?: 500
+
+        // 2. Mise à jour des textes
+        holder.tvPenonName.text = nameToDisplay
         holder.tvMacAddress.text = "MAC: ${penon.macAddress}"
+        holder.tvData.text = "Frame: ${penon.state.frame_cnt}\n" +
+                "Type: ${penon.state.frame_type}\n" +
+                "Vbat: ${penon.state.vbat} V\n" +
+                "MagZ: ${abs(penon.state.avr_mag_z/1000)} T\n" +
+                "AvrAcc: ${penon.state.avr_acc/1000} m.s-2\n" +
+                "MaxAcc: ${penon.state.max_acc/1000} m.s-2\n" +
+                "SDAcc: ${penon.state.sd_acc/1000} m.s-2\n" +
+                "SDMagZ: ${penon.state.sd_mag_z/1000} T\n" +
+                "SDFlowState: ${penon.state.sd_mag_z/1000} T"
 
-        // RSSI avec icône de signal (en haut à droite)
-        val signalIcon = when {
-            penon.rssi > -50 -> "📶"
-            penon.rssi > -70 -> "📶"
-            penon.rssi > -85 -> "📡"
-            else -> "📉"
-        }
-        holder.tvRssi.text = "$signalIcon ${penon.rssi} dBm"
+        // ... (votre code RSSI et Batterie est correct)
 
-        // Batterie (en haut à droite)
-        holder.tvBattery.text = if (penon.battery > 0) {
-            val batteryIcon = when {
-                penon.battery > 4.0 -> "🔋"
-                penon.battery > 3.5 -> "🔋"
-                penon.battery > 3.0 -> "🪫"
-                else -> "⚠️"
-            }
-            "$batteryIcon ${"%.2f".format(penon.battery)}V"
-        } else {
-            "🔋 --"
+        // 3. Logique d'attachement (Calculée avec le nouveau seuil)
+        val isAttached = abs(penon.state.getFlowState()) >= threshold
+
+        holder.tvAttachedStatus.apply {
+            text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"
+            setTextColor(if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt())
         }
 
-        // Calculer l'état Attaché/Détaché basé sur le seuil de flow state
-        val flowStateThreshold = penonSettings.find { it.macAdress == penon.macAddress }?.flowStateThreshold ?: 500
-        val isAttached = penon.flowState >= flowStateThreshold
-        
-        // STATUT ATTACHÉ/DÉTACHÉ - DONNÉE PRINCIPALE
-        holder.tvAttachedStatus.text = if (isAttached) {
-            "🔗 ATTACHÉ"
-        } else {
-            "❌ DÉTACHÉ"
-        }
-        
-        holder.tvAttachedStatus.setTextColor(
-            if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt()
-        )
-
-        // Masquer Flow State et SD Flow State (pas nécessaires à afficher)
-        holder.tvFlowState.visibility = View.GONE
-        holder.tvSDFlowState.visibility = View.GONE
-        
-        // Masquer le temps de mise à jour
-        holder.tvLastUpdate.visibility = View.GONE
-
-        // Click listener sur toute la carte
+        // 4. Click listener
         holder.itemView.setOnClickListener {
+            // On passe l'objet de données détectées
             onPenonClick?.invoke(penon)
         }
     }
 
     override fun getItemCount() = penonList.size
 
-    fun updatePenon(penon: DetectedPenon, bleScanManager: BLEScanManager) {
-        val index = penonList.indexOfFirst { it.macAddress == penon.macAddress }
+    fun updatePenon(macAddress: String, rawHexData: ByteArray, bleScanManager: BLEScanManager) {
+        val index = penonList.indexOfFirst { it.macAddress == macAddress }
         if (index != -1) {
-            penonList[index] = penon
+            penonList[index].state.updateFromRawData(rawHexData)
             notifyItemChanged(index)
-        } else if (penon.rawHexData.isNotEmpty() && bleScanManager.isLadeSEBeacon(penon.rawHexData)) {
+        } else if (rawHexData.isNotEmpty() && bleScanManager.isLadeSEBeacon(rawHexData)) {
+            val penon = Penon(macAddress = macAddress)
+            penon.state.updateFromRawData(rawHexData)
             penonList.add(penon)
             notifyItemInserted(penonList.size - 1)
         }

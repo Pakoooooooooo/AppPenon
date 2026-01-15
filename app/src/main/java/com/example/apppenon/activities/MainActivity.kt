@@ -1,11 +1,14 @@
 package com.example.apppenon.activities
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -44,8 +47,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var penonSettingsManager: PenonSettingsManager
     private lateinit var repository: PenonSettingsRepository
 
+    // ✅ ÉTAPE 1 : Déclarer le launcher au niveau de la classe
+    private lateinit var penonSettingsLauncher: ActivityResultLauncher<Intent>
+
     val PR = PenonReader(this)
-    
+
     // 🆕 Simulateur CSV
     private lateinit var csvSimulator: CSVSimulator
 
@@ -56,8 +62,27 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // ✅ ÉTAPE 2 : Enregistrer le launcher IMMÉDIATEMENT dans onCreate
+        penonSettingsLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val updatedPenon = result.data?.getSerializableExtra("updated_penon") as? Penon
+
+                if (updatedPenon != null) {
+                    val index = deviceList.indexOfFirst { it.macAddress == updatedPenon.macAddress }
+
+                    if (index != -1) {
+                        deviceList[index] = updatedPenon
+                        Toast.makeText(this, "Données mises à jour", Toast.LENGTH_SHORT).show()
+                        penonCardAdapter.notifyItemChanged(index)
+                    }
+                }
+            }
+        }
+
         repository = PenonSettingsRepository(this)
-        
+
         // 🆕 Initialiser le simulateur
         csvSimulator = CSVSimulator(this, PR.bleScanManager)
 
@@ -67,15 +92,18 @@ class MainActivity : AppCompatActivity() {
         uiStateManager = UIStateManager(this)
         penonSettingsManager = PenonSettingsManager(this, deviceList)
 
+        // ✅ ÉTAPE 3 : Configurer l'adaptateur avec le launcher déjà prêt
         penonCardAdapter = PenonCardAdapter(
             onPenonClick = { detectedPenon ->
                 val penon = getOrCreatePenon(detectedPenon.macAddress)
+
                 val intent = Intent(this, PenonsSettingsActivity::class.java)
-                intent.putExtra("penon_data", penon)
-                startActivity(intent)
+                intent.putExtra("penon_mac_address", penon.macAddress)
+                penonSettingsLauncher.launch(intent)
             },
             penonSettings = deviceList
         )
+
         rvPenonCards.layoutManager = LinearLayoutManager(this)
         rvPenonCards.adapter = penonCardAdapter
 
@@ -96,7 +124,7 @@ class MainActivity : AppCompatActivity() {
         val knownMacs = repository.getAllKnownMacAddresses()
 
         knownMacs.forEach { mac ->
-            val penon = Penon(macAdress = mac)
+            val penon = Penon(macAddress = mac)
             repository.loadPenon(penon)
             deviceList.add(penon)
         }
@@ -111,12 +139,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun getOrCreatePenon(macAddress: String): Penon {
-        var penon = deviceList.find { it.macAdress == macAddress }
+        var penon = deviceList.find { it.macAddress == macAddress }
 
         if (penon == null) {
             penon = Penon(
                 penonName = "Penon ${macAddress.takeLast(5)}",
-                macAdress = macAddress,
+                macAddress = macAddress,
                 rssi = true,
                 rssiLow = -90,
                 rssiHigh = -20,
@@ -145,8 +173,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repository.observeAllPenons().collect { allPenons ->
                 allPenons.forEach { (mac, penon) ->
-                    val index = deviceList.indexOfFirst { it.macAdress == mac }
+                    val index = deviceList.indexOfFirst { it.macAddress == mac }
                     if (index != -1 && penon != null) {
+                        // ✅ Correction mutation : On remplace l'objet dans la liste mutable
                         deviceList[index] = penon.copy()
                     }
                 }
@@ -303,21 +332,23 @@ class MainActivity : AppCompatActivity() {
 
     fun updateColor(){
         if (btnStartScan.isEnabled) {
-            btnStartScan.setBackgroundColor(resources.getColor(R.color.sea))
-        } else {
             btnStartScan.setBackgroundColor(resources.getColor(R.color.grey))
+            btnStartScan.setTextColor(resources.getColor(R.color.white))
+            btnStartScan.isEnabled = false
+        } else {
+            btnStartScan.setBackgroundColor(resources.getColor(R.color.sea))
+            btnStartScan.setTextColor(resources.getColor(R.color.white))
+            btnStartScan.isEnabled = true
         }
         if (btnStopScan.isEnabled) {
-            btnStopScan.setBackgroundColor(resources.getColor(R.color.sea))
-        }
-        else {
             btnStopScan.setBackgroundColor(resources.getColor(R.color.grey))
-        }
-        if (btnClearData.isEnabled) {
-            btnClearData.setBackgroundColor(resources.getColor(R.color.sea))
+            btnStopScan.setTextColor(resources.getColor(R.color.white))
+            btnStopScan.isEnabled = false
         }
         else {
-            btnClearData.setBackgroundColor(resources.getColor(R.color.grey))
+            btnStopScan.setBackgroundColor(resources.getColor(R.color.sea))
+            btnStopScan.setTextColor(resources.getColor(R.color.white))
+            btnStopScan.isEnabled = true
         }
     }
 

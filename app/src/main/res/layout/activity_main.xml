@@ -67,6 +67,7 @@
             android:text="⏹️ Arrêter"
             android:enabled="false"
             android:backgroundTint="@color/grey"
+            android:textColor="@color/white"
             android:textSize="9sp"/>
 
         <Button

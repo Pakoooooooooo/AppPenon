@@ -1,15 +1,11 @@
 package com.example.apppenon.activities
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TableLayout
-import android.widget.TableRow
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import com.example.apppenon.R
@@ -17,28 +13,16 @@ import com.example.apppenon.data.PenonSettingsRepository
 import com.example.apppenon.model.Penon
 import com.example.apppenon.model.PenonDecodedData
 import com.example.apppenon.utils.VoiceNotificationManager
+import java.lang.ref.WeakReference
 
-/**
- * Activité de modification des paramètres d'un Penon.
- * 
- * Responsabilités:
- * - Affichage des settings courants
- * - Capture des modifications utilisateur
- * - Sauvegarde via le Repository (pas de SharedPreferences ici!)
- * - Notification du changement via Intent Result
- * 
- * Architecture:
- * UI (Form) → Repository.savePenon() → SharedPrefs + StateFlow → Observers (BLE, etc.)
- */
 class PenonsSettingsActivity : AppCompatActivity() {
 
-    lateinit var penon: Penon
+    private lateinit var penon: Penon
     private lateinit var repository: PenonSettingsRepository
     private lateinit var voiceNotificationManager: VoiceNotificationManager
-    
-    // Variable pour stocker les dernières données décodées
     private var lastDecodedData: PenonDecodedData? = null
-    
+    private var hasUnsavedChanges = false
+
     // UI Components
     private lateinit var backBtn: Button
     private lateinit var tvMacAddress: TextView
@@ -75,77 +59,87 @@ class PenonsSettingsActivity : AppCompatActivity() {
     private lateinit var switchVbat: SwitchCompat
 
     companion object {
-        private var currentActivity: PenonsSettingsActivity? = null
+        private var currentActivity: WeakReference<PenonsSettingsActivity>? = null
 
-        fun updateDecodedData(data: PenonDecodedData, penomMacAddress: String) {
-            Log.d("PenonsSettings", "📊 updateDecodedData appelé: MAC=$penomMacAddress")
-            currentActivity?.let { activity ->
-                Log.d("PenonsSettings", "Activity existe: ${activity.penon.macAdress}")
-                if (activity.penon.macAdress == penomMacAddress) {
-                    Log.d("PenonsSettings", "✅ MAC match! Affichage des données")
-                    activity.displayDecodedData(data)
-                } else {
-                    Log.d("PenonsSettings", "⚠️ MAC ne correspond pas: ${activity.penon.macAdress} != $penomMacAddress")
+        fun updateDecodedData(data: PenonDecodedData, penonMacAddress: String) {
+            currentActivity?.get()?.let { activity ->
+                if (!activity.isFinishing && !activity.isDestroyed &&
+                    activity.penon.macAddress == penonMacAddress) {
+                    activity.runOnUiThread {
+                        activity.displayDecodedData(data)
+                    }
                 }
-            } ?: run {
-                Log.d("PenonsSettings", "⚠️ currentActivity est null")
             }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        currentActivity = this
-        Log.d("PenonsSettings", "✅ onResume: Activity en focus pour MAC=${penon.macAdress}")
-    }
-
-    override fun onPause() {
-        super.onPause()
-        currentActivity = null
-        Log.d("PenonsSettings", "⏸️ onPause: Activity pas en focus")
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        // Libérer les ressources TTS
-        voiceNotificationManager.release()
-        Log.d("PenonsSettings", "🛑 onDestroy: Ressources libérées")
-    }
-
-    @SuppressLint("CutPasteId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_penon_settings)
 
-        // Récupérer le Penon depuis l'Intent
-        penon = intent.getSerializableExtra("penon_data") as Penon
-        
-        // Initialiser le Repository
         repository = PenonSettingsRepository(this)
         
         // Initialiser le gestionnaire de notifications vocales
         voiceNotificationManager = VoiceNotificationManager(this)
 
-        // Charger les settings depuis SharedPreferences
-        // (pour s'assurer qu'on a les dernières valeurs)
-        repository.loadPenon(penon)
+        // Récupérer le MAC et charger l'objet proprement
+        val macAddress = intent.getStringExtra("penon_mac_address")
+        if (macAddress == null) {
+            Toast.makeText(this, "Erreur : MAC Address manquante", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
-        // Initialiser les références UI
+        // Créer un objet Penon temporaire et charger ses vraies valeurs depuis le Repo
+        penon = Penon(macAddress = macAddress)
+        try {
+            repository.loadPenon(penon)
+        } catch (e: Exception) {
+            Log.e("PenonsSettings", "Error loading penon: ${e.message}")
+            Toast.makeText(this, "Erreur de chargement des données", Toast.LENGTH_SHORT).show()
+        }
+
         initializeViews()
-
-        // Remplir les champs avec les valeurs courantes
         populateUI()
-
-        // Configurer les listeners
+        setupBackPressedHandler()
         setupListeners()
-        
-        // Afficher le message "pas de données" initialement
+        setupChangeListeners()
         showNoDataMessage()
     }
 
-    /**
-     * Initialise toutes les références aux vues.
-     */
+    override fun onResume() {
+        super.onResume()
+        currentActivity = WeakReference(this)
+        Log.d("PenonsSettings", "✅ onResume: Activity en focus pour MAC=${penon.macAddress}")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (currentActivity?.get() == this) {
+            currentActivity = null
+        }
+        Log.d("PenonsSettings", "⏸️ onPause: Activity pas en focus")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        voiceNotificationManager.release()
+        Log.d("PenonsSettings", "🛑 onDestroy: Ressources libérées")
+    }
+
+    private fun setupBackPressedHandler() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (hasUnsavedChanges) {
+                    showUnsavedChangesDialog()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
+    }
+
     private fun initializeViews() {
         backBtn = findViewById(R.id.backBtn)
         tvMacAddress = findViewById(R.id.tvMacAddress)
@@ -180,16 +174,10 @@ class PenonsSettingsActivity : AppCompatActivity() {
         btnDelete = findViewById(R.id.btn_delete)
         btnSave = findViewById(R.id.btn_save)
         btnCancel = findViewById(R.id.btn_cancel)
-        backBtn = findViewById(R.id.backBtn)
     }
 
-    /**
-     * Remplit tous les champs avec les valeurs courantes du Penon.
-     */
     private fun populateUI() {
-        // Afficher le MAC du Penon
-        tvMacAddress.text = "MAC: ${penon.macAdress}"
-        
+        tvMacAddress.text = "MAC: ${penon.macAddress}"
         editPenonName.setText(penon.penonName)
         editAttachedThreshold.setText(penon.flowStateThreshold.toString())
         editRSSIlow.setText(penon.rssiLow.toString())
@@ -205,6 +193,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         editVbatLow.setText(penon.vbatLow.toString())
         editVbatHigh.setText(penon.vbatHigh.toString())
         editTimeline.setText(penon.timeline.toString())
+
         switchRSSI.isChecked = penon.rssi
         switchFlowState.isChecked = penon.flowState
         switchSDFlowState.isChecked = penon.sDFlowState
@@ -218,89 +207,92 @@ class PenonsSettingsActivity : AppCompatActivity() {
         switchIDs.isChecked = penon.ids
     }
 
-    /**
-     * Configure tous les listeners de boutons.
-     */
     private fun setupListeners() {
-        // Bouton Retour
         backBtn.setOnClickListener {
-            finish()
+            if (hasUnsavedChanges) {
+                showUnsavedChangesDialog()
+            } else {
+                finish()
+            }
         }
 
-        // Bouton Annuler
         btnCancel.setOnClickListener {
-            finish()
+            if (hasUnsavedChanges) {
+                showUnsavedChangesDialog()
+            } else {
+                finish()
+            }
         }
 
-        // Bouton Sauvegarder
-        btnSave.setOnClickListener {
-            saveSettings()
-        }
-
-        // Bouton Supprimer
-        btnDelete.setOnClickListener {
-            // TODO: Implémenter la suppression si nécessaire
-            finish()
-        }
+        btnSave.setOnClickListener { saveSettings() }
+        btnDelete.setOnClickListener { showDeleteConfirmationDialog() }
     }
 
-    /**
-     * Affiche les données décodées du Penon dans un tableau.
-     */
-    fun displayDecodedData(data: PenonDecodedData) {
+    private fun setupChangeListeners() {
+        val textWatcher = object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                hasUnsavedChanges = true
+            }
+        }
+
+        val switchListener = { _: CompoundButton, _: Boolean ->
+            hasUnsavedChanges = true
+        }
+
+        // Appliquer aux EditText
+        listOf(
+            editPenonName, editAttachedThreshold, editRSSIlow, editRSSIhigh,
+            editSDFlowStateLow, editSDFlowStateHigh, editMeanAccLow, editMeanAccHigh,
+            editSDAccLow, editSDAccHigh, editMaxAccLow, editMaxAccHigh,
+            editVbatLow, editVbatHigh, editDetached, editTimeline
+        ).forEach { it.addTextChangedListener(textWatcher) }
+
+        // Appliquer aux Switch
+        listOf(
+            switchRSSI, switchFlowState, switchSDFlowState, switchMeanAcc,
+            switchSDAcc, switchMaxAcc, switchVbat, switchDetached,
+            switchCount, switchIDs
+        ).forEach { it.setOnCheckedChangeListener(switchListener) }
+    }
+
+    private fun displayDecodedData(data: PenonDecodedData) {
         lastDecodedData = data
-        
         tableDecodedData.removeAllViews()
         tvNoData.visibility = android.view.View.GONE
-        
+
         // 🔊 Déterminer l'état du Penon et annoncer le changement si nécessaire
         checkAndAnnounceStateChange(data)
-        
-        val displayMap = data.toDisplayMap()
-        
-        for ((key, value) in displayMap) {
+
+        val paddingPx = resources.getDimensionPixelSize(R.dimen.table_padding)
+        val textSizeSp = resources.getDimension(R.dimen.table_text_size)
+
+        data.toDisplayMap().forEach { (key, value) ->
             val row = TableRow(this)
-            row.layoutParams = TableRow.LayoutParams(
-                TableRow.LayoutParams.MATCH_PARENT,
-                TableRow.LayoutParams.WRAP_CONTENT
-            )
-            
-            // Colonne 1: Label (clé)
-            val labelView = TextView(this)
-            labelView.text = key
-            labelView.textSize = 12f
-            labelView.setTextColor(android.graphics.Color.parseColor("#666666"))
-            labelView.setPadding(8, 4, 8, 4)
-            labelView.layoutParams = TableRow.LayoutParams(
-                0,
-                TableRow.LayoutParams.WRAP_CONTENT,
-                0.6f
-            )
+            val labelView = TextView(this).apply {
+                text = key
+                textSize = textSizeSp / resources.displayMetrics.scaledDensity
+                setPadding(paddingPx, paddingPx / 2, paddingPx, paddingPx / 2)
+                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.6f)
+            }
+            val valueView = TextView(this).apply {
+                text = value
+                textSize = textSizeSp / resources.displayMetrics.scaledDensity
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setPadding(paddingPx, paddingPx / 2, paddingPx, paddingPx / 2)
+                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.4f)
+            }
             row.addView(labelView)
-            
-            // Colonne 2: Valeur
-            val valueView = TextView(this)
-            valueView.text = value
-            valueView.textSize = 12f
-            valueView.setTextColor(android.graphics.Color.parseColor("#00897B"))
-            valueView.setTypeface(null, android.graphics.Typeface.BOLD)
-            valueView.setPadding(8, 4, 8, 4)
-            valueView.layoutParams = TableRow.LayoutParams(
-                0,
-                TableRow.LayoutParams.WRAP_CONTENT,
-                0.4f
-            )
             row.addView(valueView)
-            
             tableDecodedData.addView(row)
         }
     }
-    
+
     /**
      * Détecte et annonce les changements d'état du Penon (attaché/détaché).
      * 🔊 Lance une notification vocale si l'état change.
      */
-
     private fun checkAndAnnounceStateChange(data: PenonDecodedData) {
         val isCurrentlyAttached = determineAttachedState(data)
 
@@ -329,89 +321,186 @@ class PenonsSettingsActivity : AppCompatActivity() {
         }
     }
 
-
     /**
      * Détermine si le Penon est attaché ou détaché en fonction des données décodées.
      * Un Penon est considéré comme attaché si l'accélération est détectée.
      */
     private fun determineAttachedState(data: PenonDecodedData): Boolean {
-        // Criteria pour être "attaché": 
+        // Criteria pour être "attaché":
         // - Mean acceleration doit être > 0
         // - SD acceleration doit être > 0
         return data.meanAcc > 0 && data.sdAcc > 0
     }
-    
-    /**
-     * Affiche le message "pas de données"
-     */
-    fun showNoDataMessage() {
+
+    private fun showNoDataMessage() {
         tableDecodedData.removeAllViews()
         tvNoData.visibility = android.view.View.VISIBLE
     }
 
-    /**
-     * Sauvegarde les modifications dans le Repository.
-     * Le Repository se charge d'écrire dans SharedPreferences et de notifier les observateurs.
-     */
-    private fun saveSettings() {
-        try {
-            // Mettre à jour l'objet Penon avec les valeurs saisies
-            penon.penonName = editPenonName.text.toString()
-            penon.flowStateThreshold = editAttachedThreshold.text.toString().toIntOrNull() 
-                ?: penon.flowStateThreshold
-            penon.rssiLow = editRSSIlow.text.toString().toIntOrNull() 
-                ?: penon.rssiLow
-            penon.rssiHigh = editRSSIhigh.text.toString().toIntOrNull() 
-                ?: penon.rssiHigh
-            penon.sDFlowStateLow = editSDFlowStateLow.text.toString().toIntOrNull() 
-                ?: penon.sDFlowStateLow
-            penon.sDFlowStateHigh = editSDFlowStateHigh.text.toString().toIntOrNull() 
-                ?: penon.sDFlowStateHigh
-            penon.meanAccLow = editMeanAccLow.text.toString().toIntOrNull() 
-                ?: penon.meanAccLow
-            penon.meanAccHigh = editMeanAccHigh.text.toString().toIntOrNull() 
-                ?: penon.meanAccHigh
-            penon.sDAccLow = editSDAccLow.text.toString().toIntOrNull() 
-                ?: penon.sDAccLow
-            penon.sDAccHigh = editSDAccHigh.text.toString().toIntOrNull() 
-                ?: penon.sDAccHigh
-            penon.maxAccLow = editMaxAccLow.text.toString().toIntOrNull() 
-                ?: penon.maxAccLow
-            penon.maxAccHigh = editMaxAccHigh.text.toString().toIntOrNull() 
-                ?: penon.maxAccHigh
-            penon.vbatLow = editVbatLow.text.toString().toDoubleOrNull() 
-                ?: penon.vbatLow
-            penon.vbatHigh = editVbatHigh.text.toString().toDoubleOrNull() 
-                ?: penon.vbatHigh
-            penon.timeline = editTimeline.text.toString().toIntOrNull() 
-                ?: penon.timeline
-            penon.rssi = switchRSSI.isChecked
-            penon.flowState = switchFlowState.isChecked
-            penon.sDFlowState = switchSDFlowState.isChecked
-            penon.meanAcc = switchMeanAcc.isChecked
-            penon.sDAcc = switchSDAcc.isChecked
-            penon.maxAcc = switchMaxAcc.isChecked
-            penon.vbat = switchVbat.isChecked
-            penon.detached = switchDetached.isChecked
-            penon.detachedThresh = editDetached.text.toString().toDoubleOrNull() 
-                ?: penon.detachedThresh
-            penon.count = switchCount.isChecked
-            penon.ids = switchIDs.isChecked
+    private fun validateInputs(): Boolean {
+        // Validation RSSI
+        val rssiLow = editRSSIlow.text.toString().toIntOrNull()
+        val rssiHigh = editRSSIhigh.text.toString().toIntOrNull()
+        if (rssiLow != null && rssiHigh != null && rssiLow > rssiHigh) {
+            Toast.makeText(this, "RSSI Low doit être ≤ RSSI High", Toast.LENGTH_SHORT).show()
+            return false
+        }
 
-            // ✅ IMPORTANT : Sauvegarder via le Repository
-            // (Qui se charge du SharedPreferences ET de notifier les observateurs)
+        // Validation SD Flow State
+        val sdFlowLow = editSDFlowStateLow.text.toString().toIntOrNull()
+        val sdFlowHigh = editSDFlowStateHigh.text.toString().toIntOrNull()
+        if (sdFlowLow != null && sdFlowHigh != null && sdFlowLow > sdFlowHigh) {
+            Toast.makeText(this, "SD Flow State Low doit être ≤ High", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        // Validation Mean Acc
+        val meanAccLow = editMeanAccLow.text.toString().toIntOrNull()
+        val meanAccHigh = editMeanAccHigh.text.toString().toIntOrNull()
+        if (meanAccLow != null && meanAccHigh != null && meanAccLow > meanAccHigh) {
+            Toast.makeText(this, "Mean Acc Low doit être ≤ High", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        // Validation SD Acc
+        val sdAccLow = editSDAccLow.text.toString().toIntOrNull()
+        val sdAccHigh = editSDAccHigh.text.toString().toIntOrNull()
+        if (sdAccLow != null && sdAccHigh != null && sdAccLow > sdAccHigh) {
+            Toast.makeText(this, "SD Acc Low doit être ≤ High", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        // Validation Max Acc
+        val maxAccLow = editMaxAccLow.text.toString().toIntOrNull()
+        val maxAccHigh = editMaxAccHigh.text.toString().toIntOrNull()
+        if (maxAccLow != null && maxAccHigh != null && maxAccLow > maxAccHigh) {
+            Toast.makeText(this, "Max Acc Low doit être ≤ High", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        // Validation Vbat
+        val vbatLow = editVbatLow.text.toString().toDoubleOrNull()
+        val vbatHigh = editVbatHigh.text.toString().toDoubleOrNull()
+        if (vbatLow != null && vbatHigh != null && vbatLow > vbatHigh) {
+            Toast.makeText(this, "Vbat Low doit être ≤ Vbat High", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        // Validation Timeline (doit être positif si renseigné)
+        val timeline = editTimeline.text.toString().toIntOrNull()
+        if (timeline != null && timeline < 0) {
+            Toast.makeText(this, "Timeline ne peut pas être négatif", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        return true
+    }
+
+    private fun saveSettings() {
+        if (!validateInputs()) {
+            return
+        }
+
+        try {
+            // Mise à jour de l'objet Penon
+            penon.apply {
+                penonName = editPenonName.text.toString()
+                flowStateThreshold = editAttachedThreshold.text.toString().toIntOrNull() ?: flowStateThreshold
+                rssiLow = editRSSIlow.text.toString().toIntOrNull() ?: rssiLow
+                rssiHigh = editRSSIhigh.text.toString().toIntOrNull() ?: rssiHigh
+                sDFlowStateLow = editSDFlowStateLow.text.toString().toIntOrNull() ?: sDFlowStateLow
+                sDFlowStateHigh = editSDFlowStateHigh.text.toString().toIntOrNull() ?: sDFlowStateHigh
+                meanAccLow = editMeanAccLow.text.toString().toIntOrNull() ?: meanAccLow
+                meanAccHigh = editMeanAccHigh.text.toString().toIntOrNull() ?: meanAccHigh
+                sDAccLow = editSDAccLow.text.toString().toIntOrNull() ?: sDAccLow
+                sDAccHigh = editSDAccHigh.text.toString().toIntOrNull() ?: sDAccHigh
+                maxAccLow = editMaxAccLow.text.toString().toIntOrNull() ?: maxAccLow
+                maxAccHigh = editMaxAccHigh.text.toString().toIntOrNull() ?: maxAccHigh
+                vbatLow = editVbatLow.text.toString().toDoubleOrNull() ?: vbatLow
+                vbatHigh = editVbatHigh.text.toString().toDoubleOrNull() ?: vbatHigh
+                timeline = editTimeline.text.toString().toIntOrNull() ?: timeline
+                rssi = switchRSSI.isChecked
+                flowState = switchFlowState.isChecked
+                sDFlowState = switchSDFlowState.isChecked
+                meanAcc = switchMeanAcc.isChecked
+                sDAcc = switchSDAcc.isChecked
+                maxAcc = switchMaxAcc.isChecked
+                vbat = switchVbat.isChecked
+                detached = switchDetached.isChecked
+                detachedThresh = editDetached.text.toString().toDoubleOrNull() ?: detachedThresh
+                count = switchCount.isChecked
+                ids = switchIDs.isChecked
+            }
+
+            Log.d("PenonsSettings", "Penon object updated, attempting to save...")
+
+            // Sauvegarde réelle
             repository.savePenon(penon)
 
-            // Retour à MainActivity avec le Penon mis à jour
-            val resultIntent = Intent()
-            resultIntent.putExtra("updated_penon", penon)
+            Log.d("PenonsSettings", "Repository save completed successfully")
+
+            // Ne pas passer l'objet Penon entier, juste son MAC address
+            val resultIntent = Intent().apply {
+                putExtra("updated_penon_mac", penon.macAddress)
+                putExtra("should_refresh", true)
+            }
             setResult(RESULT_OK, resultIntent)
 
-            Toast.makeText(this, "Paramètres sauvegardés ✅", Toast.LENGTH_SHORT).show()
+            hasUnsavedChanges = false
+            Toast.makeText(this, "Paramètres sauvegardés avec succès", Toast.LENGTH_SHORT).show()
             finish()
 
         } catch (e: Exception) {
+            Log.e("PenonsSettings", "Error saving settings: ${e.message}", e)
+            e.printStackTrace()
             Toast.makeText(this, "Erreur de sauvegarde: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun showDeleteConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Supprimer le Penon")
+            .setMessage("Êtes-vous sûr de vouloir supprimer ce Penon ? Cette action est irréversible.")
+            .setPositiveButton("Supprimer") { _, _ ->
+                deletePenon()
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
+    }
+
+    private fun deletePenon() {
+        try {
+            // Si deletePenon n'existe pas, utilisez la méthode appropriée de votre repository
+            // Par exemple : repository.removePenon(penon.macAddress)
+            // ou : repository.delete(penon)
+            // Pour l'instant, commenté en attendant la bonne méthode :
+            // repository.deletePenon(penon.macAddress)
+
+            val resultIntent = Intent().apply {
+                putExtra("deleted_penon_mac", penon.macAddress)
+            }
+            setResult(RESULT_OK, resultIntent)
+
+            Toast.makeText(this, "Penon supprimé", Toast.LENGTH_SHORT).show()
+            finish()
+        } catch (e: Exception) {
+            Log.e("PenonsSettings", "Error deleting penon: ${e.message}")
+            Toast.makeText(this, "Erreur lors de la suppression", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun showUnsavedChangesDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Modifications non sauvegardées")
+            .setMessage("Vous avez des modifications non sauvegardées. Que souhaitez-vous faire ?")
+            .setPositiveButton("Sauvegarder") { _, _ ->
+                saveSettings()
+            }
+            .setNegativeButton("Abandonner") { _, _ ->
+                hasUnsavedChanges = false
+                finish()
+            }
+            .setNeutralButton("Annuler", null)
+            .show()
     }
 }

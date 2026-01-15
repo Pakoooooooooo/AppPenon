@@ -28,7 +28,7 @@
                 android:text="Penon"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="#00897B" />
+                android:textColor="@color/sea" />
 
             <TextView
                 android:id="@+id/tvRssi"
@@ -90,7 +90,7 @@
             android:text="📊 Données en temps réel"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:textColor="#00897B"
+            android:textColor="@color/sea"
             android:layout_marginBottom="8dp" />
 
         <!-- TableLayout pour les données -->
@@ -105,7 +105,7 @@
 
         <!-- Message "pas de données" -->
         <TextView
-            android:id="@+id/tvNoData"
+            android:id="@+id/tvData"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="⏳ En attente de données..."

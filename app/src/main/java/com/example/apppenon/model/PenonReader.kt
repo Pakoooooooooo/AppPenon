@@ -21,13 +21,8 @@ import com.example.apppenon.activities.MainActivity
  *        └─→ BLEScanManager (Scan)
  */
 class PenonReader(act: MainActivity) {
-    private val act = act
     val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter?.bluetoothLeScanner
-    
-    lateinit var TARGET_MAC_ADDRESS1: String
-    lateinit var TARGET_MAC_ADDRESS2: String
-
     // Managers délégués
     private val csvManager = CSVManager(act)
     private val dataParser = PenonDataParser()
@@ -37,22 +32,6 @@ class PenonReader(act: MainActivity) {
     var isScanning: Boolean
         get() = bleScanManager.isScanning
         set(value) { bleScanManager.isScanning = value }
-
-    var frameCount1: Int
-        get() = bleScanManager.frameCount1
-        set(value) { bleScanManager.frameCount1 = value }
-
-    var frameCount2: Int
-        get() = bleScanManager.frameCount2
-        set(value) { bleScanManager.frameCount2 = value }
-
-    var lastFrameCnt1: Long
-        get() = -1L
-        set(value) { /* deprecated */ }
-
-    var lastFrameCnt2: Long
-        get() = -1L
-        set(value) { /* deprecated */ }
 
     /**
      * Demande les permissions Bluetooth (délégué à BLEScanManager).
@@ -65,14 +44,14 @@ class PenonReader(act: MainActivity) {
      * Démarre le scan BLE (délégué à BLEScanManager).
      */
     fun startScanning() {
-        bleScanManager.startScanning(TARGET_MAC_ADDRESS1, TARGET_MAC_ADDRESS2)
+        bleScanManager.startScanning()
     }
 
     /**
      * Arrête le scan BLE (délégué à BLEScanManager).
      */
     fun stopScanning() {
-        bleScanManager.stopScanning(TARGET_MAC_ADDRESS1, TARGET_MAC_ADDRESS2)
+        bleScanManager.stopScanning()
     }
 
     /**
