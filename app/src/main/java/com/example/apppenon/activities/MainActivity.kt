@@ -318,8 +318,6 @@ class MainActivity : AppCompatActivity() {
      * Démarre le scan BLE réel.
      */
     private fun startRealBLEScan() {
-        PR.TARGET_MAC_ADDRESS1 = ""
-        PR.TARGET_MAC_ADDRESS2 = ""
         PR.startScanning()
     }
 
