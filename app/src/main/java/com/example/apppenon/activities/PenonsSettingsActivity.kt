@@ -52,15 +52,12 @@ class PenonsSettingsActivity : AppCompatActivity() {
     private lateinit var btnDelete: Button
     private lateinit var btnSave: Button
     private lateinit var btnCancel: Button
-<<<<<<< HEAD
 
     // Launchers pour sélectionner les fichiers audio
     private lateinit var soundAttacheLauncher: ActivityResultLauncher<Intent>
     private lateinit var soundDetacheLauncher: ActivityResultLauncher<Intent>
-=======
     private lateinit var switchMagZ: SwitchCompat
     private lateinit var switchAvrMagZ: SwitchCompat
->>>>>>> origin/master
     private lateinit var switchRSSI: SwitchCompat
     private lateinit var switchFlowState: SwitchCompat
     private lateinit var switchSDFlowState: SwitchCompat
@@ -132,11 +129,8 @@ class PenonsSettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_penon_settings)
 
         repository = PenonSettingsRepository(this)
-<<<<<<< HEAD
 
         // Initialiser le gestionnaire de notifications vocales
-=======
->>>>>>> origin/master
         voiceNotificationManager = VoiceNotificationManager(this)
 
         val macAddress = intent.getStringExtra("penon_mac_address")
@@ -248,8 +242,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
         switchSDAcc.isChecked = penon.sDAcc
         switchVbat.isChecked = penon.vbat
         switchDetached.isChecked = penon.detached
-<<<<<<< HEAD
-        editDetached.setText(penon.detachedThresh.toString())
         editLabelAttache.setText(penon.labelAttache)
         editLabelDetache.setText(penon.labelDetache)
 
@@ -263,8 +255,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
         }
         updateSoundUIVisibility(penon.useSound)
 
-=======
->>>>>>> origin/master
         switchCount.isChecked = penon.count
         switchIDs.isChecked = penon.ids
         editAttachedThreshold.hint = penon.editAttachedThreshold.toString()
@@ -320,24 +310,14 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
         // ✅ CORRECTION: Seulement les EditText qui existent
         listOf(
-<<<<<<< HEAD
-            editPenonName, editAttachedThreshold, editRSSIlow, editRSSIhigh,
-            editSDFlowStateLow, editSDFlowStateHigh, editMeanAccLow, editMeanAccHigh,
-            editSDAccLow, editSDAccHigh, editMaxAccLow, editMaxAccHigh,
-            editVbatLow, editVbatHigh, editDetached, editTimeline,
-            editLabelAttache, editLabelDetache
-        ).forEach { it.addTextChangedListener(textWatcher) }
-
-        // Appliquer aux Switch (sauf switchUseSound qui a son propre listener)
-=======
             editPenonName,
             editAttachedThreshold,
-            editDetached,
-            editTimeline
+            editTimeline,
+            editLabelAttache,
+            editLabelDetache
         ).forEach { it.addTextChangedListener(textWatcher) }
 
         // ✅ CORRECTION: Tous les switches qui existent
->>>>>>> origin/master
         listOf(
             switchAvrMagZ,
             switchMagZ,
@@ -396,12 +376,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         }
 
         if (previousState != isCurrentlyAttached) {
-<<<<<<< HEAD
-            Log.d(
-                "VoiceNotification",
-                "🔁 Changement d'état: $previousState → $isCurrentlyAttached"
-            )
-
+            Log.d("VoiceNotification", "🔁 Changement d'état: $previousState → $isCurrentlyAttached")
             voiceNotificationManager.announceStateChange(
                 penonName = penon.penonName,
                 isAttached = isCurrentlyAttached,
@@ -412,10 +387,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
                 labelDetache = penon.labelDetache
             )
 
-=======
-            Log.d("VoiceNotification", "🔁 Changement d'état: $previousState → $isCurrentlyAttached")
-            voiceNotificationManager.announceStateChange(penon.penonName, isCurrentlyAttached)
->>>>>>> origin/master
             penon.lastAttachedState = isCurrentlyAttached
         }
     }
@@ -447,19 +418,15 @@ class PenonsSettingsActivity : AppCompatActivity() {
                 sDAcc = switchSDAcc.isChecked
                 vbat = switchVbat.isChecked
                 detached = switchDetached.isChecked
-<<<<<<< HEAD
-                detachedThresh = editDetached.text.toString().toDoubleOrNull() ?: detachedThresh
                 labelAttache = editLabelAttache.text.toString().takeIf { it.isNotBlank() } ?: "attaché"
                 labelDetache = editLabelDetache.text.toString().takeIf { it.isNotBlank() } ?: "détaché"
                 useSound = switchUseSound.isChecked
                 // soundAttachePath et soundDetachePath sont déjà mis à jour par les launchers
-=======
->>>>>>> origin/master
                 count = switchCount.isChecked
                 ids = switchIDs.isChecked
 
                 // ✅ CORRECTION: Convertir EditText en Int
-                editAttachedThreshold = editAttachedThreshold
+                editAttachedThreshold = this@PenonsSettingsActivity.editAttachedThreshold.text.toString().toIntOrNull()
                     ?: this.editAttachedThreshold
             }
 

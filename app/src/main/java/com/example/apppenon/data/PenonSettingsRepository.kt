@@ -189,15 +189,11 @@ class PenonSettingsRepository(private val context: Context) {
             putBoolean("${penon.macAddress}_maxAcc", penon.maxAcc)
             putBoolean("${penon.macAddress}_vbat", penon.vbat)
             putBoolean("${penon.macAddress}_detached", penon.detached)
-<<<<<<< HEAD
-            putFloat("${penon.macAddress}_detachedThresh", penon.detachedThresh.toFloat())
             putString("${penon.macAddress}_labelAttache", penon.labelAttache)
             putString("${penon.macAddress}_labelDetache", penon.labelDetache)
             putBoolean("${penon.macAddress}_useSound", penon.useSound)
             putString("${penon.macAddress}_soundAttachePath", penon.soundAttachePath)
             putString("${penon.macAddress}_soundDetachePath", penon.soundDetachePath)
-=======
->>>>>>> origin/master
             putBoolean("${penon.macAddress}_count", penon.count)
             putBoolean("${penon.macAddress}_ids", penon.ids)
             apply()
