@@ -8,11 +8,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.R
 import com.example.apppenon.model.BLEScanManager
 import com.example.apppenon.model.Penon
+import com.example.apppenon.utils.VoiceNotificationManager
 import kotlin.math.abs
 
 class PenonCardAdapter (
     private val onPenonClick: ((Penon) -> Unit)? = null,
-    private val penonSettings: MutableList<com.example.apppenon.model.Penon> = mutableListOf()
+    private val penonSettings: MutableList<com.example.apppenon.model.Penon> = mutableListOf(),
+    private val voiceNotificationManager: VoiceNotificationManager? = null
 ) : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolder>() {
 
     private val penonList = mutableListOf<Penon>()
@@ -62,6 +64,25 @@ class PenonCardAdapter (
 
         // 3. Logique d'attachement (Calculée avec le nouveau seuil)
         val isAttached = abs(penon.state.getFlowState()) >= threshold
+
+        // 🔊 Détecter les changements d'état et annoncer (vocal ou son)
+        if (settings != null) {
+            val previousState = settings.lastAttachedState
+            if (previousState != null && previousState != isAttached) {
+                // L'état a changé, annoncer (vocal ou son selon la config)
+                voiceNotificationManager?.announceStateChange(
+                    penonName = settings.penonName,
+                    isAttached = isAttached,
+                    useSound = settings.useSound,
+                    soundAttachePath = settings.soundAttachePath,
+                    soundDetachePath = settings.soundDetachePath,
+                    labelAttache = settings.labelAttache,
+                    labelDetache = settings.labelDetache
+                )
+            }
+            // Mettre à jour l'état précédent
+            settings.lastAttachedState = isAttached
+        }
 
         holder.tvAttachedStatus.apply {
             text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"

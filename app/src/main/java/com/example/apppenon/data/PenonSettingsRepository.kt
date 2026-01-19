@@ -194,6 +194,26 @@ class PenonSettingsRepository(private val context: Context) {
             "${penon.macAddress}_ids",
             penon.ids
         )
+        penon.labelAttache = sharedPref.getString(
+            "${penon.macAddress}_labelAttache",
+            penon.labelAttache
+        ) ?: penon.labelAttache
+        penon.labelDetache = sharedPref.getString(
+            "${penon.macAddress}_labelDetache",
+            penon.labelDetache
+        ) ?: penon.labelDetache
+        penon.useSound = sharedPref.getBoolean(
+            "${penon.macAddress}_useSound",
+            penon.useSound
+        )
+        penon.soundAttachePath = sharedPref.getString(
+            "${penon.macAddress}_soundAttachePath",
+            penon.soundAttachePath
+        ) ?: penon.soundAttachePath
+        penon.soundDetachePath = sharedPref.getString(
+            "${penon.macAddress}_soundDetachePath",
+            penon.soundDetachePath
+        ) ?: penon.soundDetachePath
 
         // Mettre à jour le StateFlow correspondant
         updateStateFlow(penon)
@@ -235,6 +255,11 @@ class PenonSettingsRepository(private val context: Context) {
             putBoolean("${penon.macAddress}_vbat", penon.vbat)
             putBoolean("${penon.macAddress}_detached", penon.detached)
             putFloat("${penon.macAddress}_detachedThresh", penon.detachedThresh.toFloat())
+            putString("${penon.macAddress}_labelAttache", penon.labelAttache)
+            putString("${penon.macAddress}_labelDetache", penon.labelDetache)
+            putBoolean("${penon.macAddress}_useSound", penon.useSound)
+            putString("${penon.macAddress}_soundAttachePath", penon.soundAttachePath)
+            putString("${penon.macAddress}_soundDetachePath", penon.soundDetachePath)
             putBoolean("${penon.macAddress}_count", penon.count)
             putBoolean("${penon.macAddress}_ids", penon.ids)
             apply()

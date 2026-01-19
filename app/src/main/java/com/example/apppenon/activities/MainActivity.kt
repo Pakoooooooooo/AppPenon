@@ -22,6 +22,7 @@ import com.example.apppenon.data.PenonSettingsRepository
 import com.example.apppenon.R
 import com.example.apppenon.simulation.SimulationConfig
 import com.example.apppenon.simulation.CSVSimulator
+import com.example.apppenon.utils.VoiceNotificationManager
 import kotlinx.coroutines.launch
 
 /**
@@ -46,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var uiStateManager: UIStateManager
     private lateinit var penonSettingsManager: PenonSettingsManager
     private lateinit var repository: PenonSettingsRepository
+    private lateinit var voiceNotificationManager: VoiceNotificationManager
 
     // ✅ ÉTAPE 1 : Déclarer le launcher au niveau de la classe
     private lateinit var penonSettingsLauncher: ActivityResultLauncher<Intent>
@@ -82,6 +84,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         repository = PenonSettingsRepository(this)
+        voiceNotificationManager = VoiceNotificationManager(this)
 
         // 🆕 Initialiser le simulateur
         csvSimulator = CSVSimulator(this, PR.bleScanManager)
@@ -101,7 +104,8 @@ class MainActivity : AppCompatActivity() {
                 intent.putExtra("penon_mac_address", penon.macAddress)
                 penonSettingsLauncher.launch(intent)
             },
-            penonSettings = deviceList
+            penonSettings = deviceList,
+            voiceNotificationManager = voiceNotificationManager
         )
 
         rvPenonCards.layoutManager = LinearLayoutManager(this)
@@ -356,6 +360,7 @@ class MainActivity : AppCompatActivity() {
             csvSimulator.stopSimulation()
             PR.stopScanning()
             PR.closeCSVFiles()
+            voiceNotificationManager.release()
         } catch (e: Exception) {
             e.printStackTrace()
         }

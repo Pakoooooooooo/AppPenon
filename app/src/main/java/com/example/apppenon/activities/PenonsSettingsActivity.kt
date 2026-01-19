@@ -1,10 +1,15 @@
 package com.example.apppenon.activities
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.util.Log
+import android.view.View
 import android.widget.*
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
@@ -45,11 +50,24 @@ class PenonsSettingsActivity : AppCompatActivity() {
     private lateinit var switchDetached: SwitchCompat
     private lateinit var editDetached: EditText
     private lateinit var editTimeline: EditText
+    private lateinit var editLabelAttache: EditText
+    private lateinit var editLabelDetache: EditText
+    private lateinit var switchUseSound: SwitchCompat
+    private lateinit var layoutVoiceLabels: LinearLayout
+    private lateinit var layoutCustomSounds: LinearLayout
+    private lateinit var tvSoundAttacheStatus: TextView
+    private lateinit var tvSoundDetacheStatus: TextView
+    private lateinit var btnSelectSoundAttache: Button
+    private lateinit var btnSelectSoundDetache: Button
     private lateinit var switchCount: SwitchCompat
     private lateinit var switchIDs: SwitchCompat
     private lateinit var btnDelete: Button
     private lateinit var btnSave: Button
     private lateinit var btnCancel: Button
+
+    // Launchers pour sélectionner les fichiers audio
+    private lateinit var soundAttacheLauncher: ActivityResultLauncher<Intent>
+    private lateinit var soundDetacheLauncher: ActivityResultLauncher<Intent>
     private lateinit var switchRSSI: SwitchCompat
     private lateinit var switchFlowState: SwitchCompat
     private lateinit var switchSDFlowState: SwitchCompat
@@ -75,10 +93,53 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialiser les launchers pour sélectionner les fichiers audio
+        soundAttacheLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                result.data?.data?.let { uri ->
+                    try {
+                        // Prendre la permission persistante
+                        contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                        penon.soundAttachePath = uri.toString()
+                        tvSoundAttacheStatus.text = getFileName(uri)
+                        hasUnsavedChanges = true
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        soundDetacheLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                result.data?.data?.let { uri ->
+                    try {
+                        contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                        penon.soundDetachePath = uri.toString()
+                        tvSoundDetacheStatus.text = getFileName(uri)
+                        hasUnsavedChanges = true
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
         setContentView(R.layout.activity_penon_settings)
 
         repository = PenonSettingsRepository(this)
-        
+
         // Initialiser le gestionnaire de notifications vocales
         voiceNotificationManager = VoiceNotificationManager(this)
 
@@ -169,6 +230,15 @@ class PenonsSettingsActivity : AppCompatActivity() {
         switchVbat = findViewById(R.id.switch_vbat)
         switchDetached = findViewById(R.id.switch_detached)
         editDetached = findViewById(R.id.edit_detached)
+        editLabelAttache = findViewById(R.id.edit_label_attache)
+        editLabelDetache = findViewById(R.id.edit_label_detache)
+        switchUseSound = findViewById(R.id.switch_use_sound)
+        layoutVoiceLabels = findViewById(R.id.layout_voice_labels)
+        layoutCustomSounds = findViewById(R.id.layout_custom_sounds)
+        tvSoundAttacheStatus = findViewById(R.id.tv_sound_attache_status)
+        tvSoundDetacheStatus = findViewById(R.id.tv_sound_detache_status)
+        btnSelectSoundAttache = findViewById(R.id.btn_select_sound_attache)
+        btnSelectSoundDetache = findViewById(R.id.btn_select_sound_detache)
         switchCount = findViewById(R.id.switch_count)
         switchIDs = findViewById(R.id.switch_ids)
         btnDelete = findViewById(R.id.btn_delete)
@@ -203,6 +273,19 @@ class PenonsSettingsActivity : AppCompatActivity() {
         switchVbat.isChecked = penon.vbat
         switchDetached.isChecked = penon.detached
         editDetached.setText(penon.detachedThresh.toString())
+        editLabelAttache.setText(penon.labelAttache)
+        editLabelDetache.setText(penon.labelDetache)
+
+        // Configuration sons/vocal
+        switchUseSound.isChecked = penon.useSound
+        if (penon.soundAttachePath.isNotEmpty()) {
+            tvSoundAttacheStatus.text = getFileName(Uri.parse(penon.soundAttachePath))
+        }
+        if (penon.soundDetachePath.isNotEmpty()) {
+            tvSoundDetacheStatus.text = getFileName(Uri.parse(penon.soundDetachePath))
+        }
+        updateSoundUIVisibility(penon.useSound)
+
         switchCount.isChecked = penon.count
         switchIDs.isChecked = penon.ids
     }
@@ -226,6 +309,20 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
         btnSave.setOnClickListener { saveSettings() }
         btnDelete.setOnClickListener { showDeleteConfirmationDialog() }
+
+        // Listeners pour les sons personnalisés
+        switchUseSound.setOnCheckedChangeListener { _, isChecked ->
+            updateSoundUIVisibility(isChecked)
+            hasUnsavedChanges = true
+        }
+
+        btnSelectSoundAttache.setOnClickListener {
+            openAudioFilePicker(soundAttacheLauncher)
+        }
+
+        btnSelectSoundDetache.setOnClickListener {
+            openAudioFilePicker(soundDetacheLauncher)
+        }
     }
 
     private fun setupChangeListeners() {
@@ -246,10 +343,11 @@ class PenonsSettingsActivity : AppCompatActivity() {
             editPenonName, editAttachedThreshold, editRSSIlow, editRSSIhigh,
             editSDFlowStateLow, editSDFlowStateHigh, editMeanAccLow, editMeanAccHigh,
             editSDAccLow, editSDAccHigh, editMaxAccLow, editMaxAccHigh,
-            editVbatLow, editVbatHigh, editDetached, editTimeline
+            editVbatLow, editVbatHigh, editDetached, editTimeline,
+            editLabelAttache, editLabelDetache
         ).forEach { it.addTextChangedListener(textWatcher) }
 
-        // Appliquer aux Switch
+        // Appliquer aux Switch (sauf switchUseSound qui a son propre listener)
         listOf(
             switchRSSI, switchFlowState, switchSDFlowState, switchMeanAcc,
             switchSDAcc, switchMaxAcc, switchVbat, switchDetached,
@@ -313,8 +411,13 @@ class PenonsSettingsActivity : AppCompatActivity() {
             )
 
             voiceNotificationManager.announceStateChange(
-                penon.penonName,
-                isCurrentlyAttached
+                penonName = penon.penonName,
+                isAttached = isCurrentlyAttached,
+                useSound = penon.useSound,
+                soundAttachePath = penon.soundAttachePath,
+                soundDetachePath = penon.soundDetachePath,
+                labelAttache = penon.labelAttache,
+                labelDetache = penon.labelDetache
             )
 
             penon.lastAttachedState = isCurrentlyAttached
@@ -428,6 +531,10 @@ class PenonsSettingsActivity : AppCompatActivity() {
                 vbat = switchVbat.isChecked
                 detached = switchDetached.isChecked
                 detachedThresh = editDetached.text.toString().toDoubleOrNull() ?: detachedThresh
+                labelAttache = editLabelAttache.text.toString().takeIf { it.isNotBlank() } ?: "attaché"
+                labelDetache = editLabelDetache.text.toString().takeIf { it.isNotBlank() } ?: "détaché"
+                useSound = switchUseSound.isChecked
+                // soundAttachePath et soundDetachePath sont déjà mis à jour par les launchers
                 count = switchCount.isChecked
                 ids = switchIDs.isChecked
             }
@@ -502,5 +609,51 @@ class PenonsSettingsActivity : AppCompatActivity() {
             }
             .setNeutralButton("Annuler", null)
             .show()
+    }
+
+    /**
+     * Affiche/masque les sections selon le mode choisi (vocal ou son)
+     */
+    private fun updateSoundUIVisibility(useSound: Boolean) {
+        if (useSound) {
+            layoutVoiceLabels.visibility = View.GONE
+            layoutCustomSounds.visibility = View.VISIBLE
+        } else {
+            layoutVoiceLabels.visibility = View.VISIBLE
+            layoutCustomSounds.visibility = View.GONE
+        }
+    }
+
+    /**
+     * Ouvre le sélecteur de fichiers audio
+     */
+    private fun openAudioFilePicker(launcher: ActivityResultLauncher<Intent>) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "audio/*"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        }
+        launcher.launch(intent)
+    }
+
+    /**
+     * Récupère le nom du fichier depuis l'URI
+     */
+    private fun getFileName(uri: Uri): String {
+        var fileName = "Fichier sélectionné"
+        try {
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex != -1) {
+                        fileName = cursor.getString(nameIndex)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PenonsSettings", "Error getting file name: ${e.message}")
+        }
+        return fileName
     }
 }
