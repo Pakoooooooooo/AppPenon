@@ -49,6 +49,7 @@
             </RelativeLayout>
 
             <!-- MAC Address Display -->
+
             <TextView
                 android:id="@+id/tvMacAddress"
                 android:layout_width="wrap_content"
@@ -61,12 +62,12 @@
                 android:textStyle="italic" />
         </LinearLayout>
 
-        <!-- Cyan divider -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="8dp"
-            android:background="#00BCD4" />
     </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E0E0E0" />
 
     <!-- Contenu scrollable -->
     <ScrollView
@@ -110,7 +111,197 @@
 
             <View
                 android:layout_width="match_parent"
-                android:layout_height="8dp"
+                android:layout_height="1dp"
+                android:background="#E0E0E0" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/white"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="🔗 SEUIL ATTACHÉ/DÉTACHÉ"
+                    android:textColor="#00BCD4"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Le Penon est ATTACHÉ si le Flow State ≥ au seuil"
+                    android:textColor="#666666"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Seuil (Flow State)"
+                        android:textColor="#000000"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <EditText
+                    android:id="@+id/edit_attached_threshold"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@android:drawable/edit_text"
+                    android:gravity="center"
+                    android:hint="Ex: 500"
+                    android:inputType="number"
+                    android:textColor="#000000"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/white"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:text="Détecter détachement"
+                        android:textColor="#000000"
+                        android:textSize="16sp" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switch_detached"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:checked="true" />
+                </RelativeLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="Seuil détachement"
+                    android:textColor="#999999"
+                    android:textSize="12sp" />
+
+                <EditText
+                    android:id="@+id/edit_detached"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@android:drawable/edit_text"
+                    android:gravity="center"
+                    android:inputType="numberDecimal"
+                    android:text="10"
+                    android:textColor="#000000"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0"
+                android:visibility="gone"/>
+
+            <!-- Avr Mag Z Setting -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/white"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:text="Avr Mag Z"
+                        android:textColor="#000000"
+                        android:textSize="16sp" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switch_avr_avr_mag_z"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:checked="true" />
+                </RelativeLayout>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0" />
+
+            <!-- Mag Z Setting -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/white"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:text="Mag Z"
+                        android:textColor="#000000"
+                        android:textSize="16sp" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switch_avr_mag_z"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:checked="true" />
+                </RelativeLayout>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
                 android:background="#E0E0E0" />
 
             <!-- RSSI Setting -->
@@ -144,64 +335,6 @@
                         android:checked="true" />
                 </RelativeLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="low"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_rssi_low"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="numberSigned"
-                            android:text="-75"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="high"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_rssi_high"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="numberSigned"
-                            android:text="-50"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-                </LinearLayout>
             </LinearLayout>
 
             <View
@@ -215,7 +348,8 @@
                 android:layout_height="wrap_content"
                 android:background="@android:color/white"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:visibility="gone">
 
                 <RelativeLayout
                     android:layout_width="match_parent"
@@ -240,70 +374,13 @@
                         android:checked="true" />
                 </RelativeLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="low"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_flow_state_low"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="500"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="high"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_flow_state_high"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="800"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-                </LinearLayout>
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#E0E0E0" />
+                android:background="#E0E0E0"
+                android:visibility="gone"/>
 
             <!-- SD Flow State Setting -->
             <LinearLayout
@@ -311,7 +388,8 @@
                 android:layout_height="wrap_content"
                 android:background="@android:color/white"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:visibility="gone">
 
                 <RelativeLayout
                     android:layout_width="match_parent"
@@ -336,70 +414,13 @@
                         android:checked="true" />
                 </RelativeLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="low"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_sd_flow_state_low"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="200"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="high"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_sd_flow_state_high"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="800"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-                </LinearLayout>
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#E0E0E0" />
+                android:background="#E0E0E0"
+                android:visibility="gone"/>
 
             <!-- Mean ACC Setting -->
             <LinearLayout
@@ -432,160 +453,6 @@
                         android:checked="true" />
                 </RelativeLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="low"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_mean_acc_low"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="900"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="high"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_mean_acc_high"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="1200"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#E0E0E0" />
-
-            <!-- SD ACC Setting -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/white"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:text="sd acc"
-                        android:textColor="#000000"
-                        android:textSize="16sp" />
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switch_sd_acc"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:checked="true" />
-                </RelativeLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="low"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_sd_acc_low"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="6000"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="high"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_sd_acc_high"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="8000"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-                </LinearLayout>
             </LinearLayout>
 
             <View
@@ -624,70 +491,52 @@
                         android:checked="true" />
                 </RelativeLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="low"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_max_acc_low"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="2000"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="high"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_max_acc_high"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="number"
-                            android:text="1000"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-                </LinearLayout>
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:background="#E0E0E0" />
+
+            <!-- SD ACC Setting -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/white"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:text="sd acc"
+                        android:textColor="#000000"
+                        android:textSize="16sp" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switch_sd_acc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:checked="true" />
+                </RelativeLayout>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0"
+                android:visibility="gone"/>
 
             <!-- VBat Setting -->
             <LinearLayout
@@ -720,115 +569,8 @@
                         android:checked="true" />
                 </RelativeLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="low"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_vbat_low"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="numberDecimal"
-                            android:text="2.4"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="high"
-                            android:textColor="#999999"
-                            android:textSize="12sp" />
-
-                        <EditText
-                            android:id="@+id/edit_vbat_high"
-                            android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:inputType="numberDecimal"
-                            android:text="2.8"
-                            android:gravity="center"
-                            android:background="@android:drawable/edit_text"
-                            android:textColor="#000000"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-                </LinearLayout>
             </LinearLayout>
             <!-- Detached -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/white"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:text="Détecter détachement"
-                        android:textColor="#000000"
-                        android:textSize="16sp" />
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switch_detached"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:checked="true" />
-                </RelativeLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Seuil détachement"
-                    android:textColor="#999999"
-                    android:textSize="12sp"
-                    android:layout_marginBottom="4dp" />
-
-                <EditText
-                    android:id="@+id/edit_detached"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:inputType="numberDecimal"
-                    android:text="10"
-                    android:gravity="center"
-                    android:background="@android:drawable/edit_text"
-                    android:textColor="#000000"
-                    android:textSize="16sp" />
-            </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
@@ -836,57 +578,6 @@
                 android:background="#E0E0E0" />
 
             <!-- ATTACHÉ/DÉTACHÉ Setting -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/white"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="🔗 SEUIL ATTACHÉ/DÉTACHÉ"
-                    android:textColor="#00BCD4"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:text="Le Penon est ATTACHÉ si le Flow State ≥ au seuil"
-                    android:textColor="#666666"
-                    android:textSize="13sp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Seuil (Flow State)"
-                        android:textColor="#000000"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <EditText
-                    android:id="@+id/edit_attached_threshold"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:inputType="number"
-                    android:hint="Ex: 500"
-                    android:gravity="center"
-                    android:background="@android:drawable/edit_text"
-                    android:textColor="#000000"
-                    android:textSize="16sp" />
-            </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
