@@ -43,29 +43,46 @@ class PenonCardAdapter (
         val settings = penonSettings.find { it.macAddress == penon.macAddress }
 
         val nameToDisplay = settings?.penonName ?: penon.penonName
-        val threshold = settings?.flowStateThreshold ?: 500
+        val threshold = settings?.editAttachedThreshold ?: 500
 
         // 2. Mise à jour des textes
         holder.tvPenonName.text = nameToDisplay
         holder.tvMacAddress.text = "MAC: ${penon.macAddress}"
-        holder.tvData.text = "Frame: ${penon.state.frame_cnt}\n" +
-                "Type: ${penon.state.frame_type}\n" +
-                "Vbat: ${penon.state.vbat} V\n" +
-                "MagZ: ${abs(penon.state.avr_mag_z/100)} Tx10-1\n" +
-                "AvrAcc: ${penon.state.avr_acc/1000} m.s-2\n" +
-                "MaxAcc: ${penon.state.max_acc/1000} m.s-2\n" +
-                "SDAcc: ${penon.state.sd_acc/1000} m.s-2\n" +
-                "SDMagZ: ${penon.state.sd_mag_z/1000} T\n" +
-                "SDFlowState: ${penon.state.sd_mag_z/1000} T"
+        var print = ""
+        if (settings?.count == true) {
+            print += "Frame: ${penon.state.frame_cnt}\n"
+        }
+        if (settings?.vbat == true) {
+            print += "Vbat: ${penon.state.vbat} V\n"
+        }
+        if (settings?.avrMagZ == true) {
+            print += "MagZ: ${abs(penon.state.avr_mag_z/100)} Tx10-1\n"
+        }
+        if (settings?.avrAvrMagZ == true) {
+            print += "AvrMagZ: ${penon.state.avr_avr_mag_z/100} Tx10-1\n"
+        }
+        if (settings?.meanAcc == true) {
+            print += "AvrAcc: ${penon.state.avr_acc/1000} m.s-2\n"
+        }
+        if (settings?.maxAcc == true) {
+            print += "MaxAcc: ${penon.state.max_acc/1000} m.s-2\n"
+        }
+        holder.tvData.text = print
 
         // ... (votre code RSSI et Batterie est correct)
 
         // 3. Logique d'attachement (Calculée avec le nouveau seuil)
+        val mathDone = penon.state.frame_cnt > 10
         val isAttached = abs(penon.state.getFlowState()) >= threshold
 
         holder.tvAttachedStatus.apply {
-            text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"
-            setTextColor(if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt())
+            if (mathDone) {
+                text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"
+                setTextColor(if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt())
+            } else {
+                text = "⏳ WAITING FOR DATA"
+                setTextColor(0xFF00BCD4.toInt())
+            }
         }
 
         // 4. Click listener

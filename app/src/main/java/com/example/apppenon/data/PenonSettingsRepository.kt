@@ -94,58 +94,10 @@ class PenonSettingsRepository(private val context: Context) {
             penon.penonName
         ) ?: penon.penonName
 
-        penon.flowStateThreshold = sharedPref.getInt(
-            "${penon.macAddress}_flowStateThreshold",
-            penon.flowStateThreshold
+        penon.editAttachedThreshold = sharedPref.getInt(
+            "${penon.macAddress}_editAttachedThreshold",
+            penon.editAttachedThreshold
         )
-        penon.rssiLow = sharedPref.getInt(
-            "${penon.macAddress}_rssiLow",
-            penon.rssiLow
-        )
-        penon.rssiHigh = sharedPref.getInt(
-            "${penon.macAddress}_rssiHigh",
-            penon.rssiHigh
-        )
-        penon.sDFlowStateLow = sharedPref.getInt(
-            "${penon.macAddress}_sDFlowStateLow",
-            penon.sDFlowStateLow
-        )
-        penon.sDFlowStateHigh = sharedPref.getInt(
-            "${penon.macAddress}_sDFlowStateHigh",
-            penon.sDFlowStateHigh
-        )
-        penon.meanAccLow = sharedPref.getInt(
-            "${penon.macAddress}_meanAccLow",
-            penon.meanAccLow
-        )
-        penon.meanAccHigh = sharedPref.getInt(
-            "${penon.macAddress}_meanAccHigh",
-            penon.meanAccHigh
-        )
-        penon.sDAccLow = sharedPref.getInt(
-            "${penon.macAddress}_sDAccLow",
-            penon.sDAccLow
-        )
-        penon.sDAccHigh = sharedPref.getInt(
-            "${penon.macAddress}_sDAccHigh",
-            penon.sDAccHigh
-        )
-        penon.maxAccLow = sharedPref.getInt(
-            "${penon.macAddress}_maxAccLow",
-            penon.maxAccLow
-        )
-        penon.maxAccHigh = sharedPref.getInt(
-            "${penon.macAddress}_maxAccHigh",
-            penon.maxAccHigh
-        )
-        penon.vbatLow = sharedPref.getFloat(
-            "${penon.macAddress}_vbatLow",
-            penon.vbatLow.toFloat()
-        ).toDouble()
-        penon.vbatHigh = sharedPref.getFloat(
-            "${penon.macAddress}_vbatHigh",
-            penon.vbatHigh.toFloat()
-        ).toDouble()
         penon.timeline = sharedPref.getInt(
             "${penon.macAddress}_timeline",
             penon.timeline
@@ -182,10 +134,6 @@ class PenonSettingsRepository(private val context: Context) {
             "${penon.macAddress}_detached",
             penon.detached
         )
-        penon.detachedThresh = sharedPref.getFloat(
-            "${penon.macAddress}_detachedThresh",
-            penon.detachedThresh.toFloat()
-        ).toDouble()
         penon.count = sharedPref.getBoolean(
             "${penon.macAddress}_count",
             penon.count
@@ -212,19 +160,6 @@ class PenonSettingsRepository(private val context: Context) {
 
         sharedPref.edit().apply {
             putString("${penon.macAddress}_penonName", penon.penonName)
-            putInt("${penon.macAddress}_flowStateThreshold", penon.flowStateThreshold)
-            putInt("${penon.macAddress}_rssiLow", penon.rssiLow)
-            putInt("${penon.macAddress}_rssiHigh", penon.rssiHigh)
-            putInt("${penon.macAddress}_sDFlowStateLow", penon.sDFlowStateLow)
-            putInt("${penon.macAddress}_sDFlowStateHigh", penon.sDFlowStateHigh)
-            putInt("${penon.macAddress}_meanAccLow", penon.meanAccLow)
-            putInt("${penon.macAddress}_meanAccHigh", penon.meanAccHigh)
-            putInt("${penon.macAddress}_sDAccLow", penon.sDAccLow)
-            putInt("${penon.macAddress}_sDAccHigh", penon.sDAccHigh)
-            putInt("${penon.macAddress}_maxAccLow", penon.maxAccLow)
-            putInt("${penon.macAddress}_maxAccHigh", penon.maxAccHigh)
-            putFloat("${penon.macAddress}_vbatLow", penon.vbatLow.toFloat())
-            putFloat("${penon.macAddress}_vbatHigh", penon.vbatHigh.toFloat())
             putInt("${penon.macAddress}_timeline", penon.timeline)
             putBoolean("${penon.macAddress}_rssi", penon.rssi)
             putBoolean("${penon.macAddress}_flowState", penon.flowState)
@@ -234,7 +169,6 @@ class PenonSettingsRepository(private val context: Context) {
             putBoolean("${penon.macAddress}_maxAcc", penon.maxAcc)
             putBoolean("${penon.macAddress}_vbat", penon.vbat)
             putBoolean("${penon.macAddress}_detached", penon.detached)
-            putFloat("${penon.macAddress}_detachedThresh", penon.detachedThresh.toFloat())
             putBoolean("${penon.macAddress}_count", penon.count)
             putBoolean("${penon.macAddress}_ids", penon.ids)
             apply()

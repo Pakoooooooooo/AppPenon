@@ -146,14 +146,9 @@ class MainActivity : AppCompatActivity() {
                 penonName = "Penon ${macAddress.takeLast(5)}",
                 macAddress = macAddress,
                 rssi = true,
-                rssiLow = -90,
-                rssiHigh = -20,
                 flowState = true,
-                flowStateThreshold = 500,
+                editAttachedThreshold = 500,
                 sDFlowState = true,
-                sDFlowStateLow = 100,
-                sDFlowStateHigh = 800,
-                detachedThresh = 100.0
             )
 
             repository.loadPenon(penon)
