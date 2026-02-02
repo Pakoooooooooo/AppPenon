@@ -1,12 +1,12 @@
 package com.example.apppenon.model
 
-import android.content.ContentValues.TAG
 import android.util.Log
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
 
 class PenonState {
+    private val TAG = "PenonState"
     var frame_cnt: Long = 0
     var frame_type: Int = 0
     var vbat: Double = 0.0

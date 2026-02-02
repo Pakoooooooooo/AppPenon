@@ -90,7 +90,6 @@ class CSVSimulator(
 
         } catch (e: Exception) {
             Log.e(TAG, "❌ Erreur chargement CSV : ${e.message}", e)
-            e.printStackTrace()
             false
         }
     }

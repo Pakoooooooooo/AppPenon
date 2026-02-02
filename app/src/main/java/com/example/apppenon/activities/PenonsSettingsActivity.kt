@@ -448,7 +448,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
         } catch (e: Exception) {
             Log.e("PenonsSettings", "Error saving settings: ${e.message}", e)
-            e.printStackTrace()
             Toast.makeText(this, "Erreur de sauvegarde: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }

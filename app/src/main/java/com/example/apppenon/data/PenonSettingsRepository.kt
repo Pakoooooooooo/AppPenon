@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.example.apppenon.model.Penon
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +26,7 @@ class PenonSettingsRepository(private val context: Context) {
         context.getSharedPreferences("penon_data", Context.MODE_PRIVATE)
 
     private val TAG = "PenonSettingsRepo"
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // Map de StateFlow pour chaque Penon identifié par sa MAC
     private val penonFlowMap = mutableMapOf<String, MutableStateFlow<Penon?>>()
@@ -74,7 +77,7 @@ class PenonSettingsRepository(private val context: Context) {
         }
 
         // Combiner tous les flows
-        GlobalScope.launch {
+        scope.launch {
             combine(allFlows) { penons ->
                 penonFlowMap.keys.zip(penons).toMap()
             }.collect { combinedFlow.value = it }

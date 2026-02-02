@@ -1,6 +1,7 @@
 package com.example.apppenon.activities
 
 import android.app.Activity
+import android.util.Log
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -354,7 +355,7 @@ class MainActivity : AppCompatActivity() {
             PR.closeCSVFiles()
             voiceNotificationManager.release()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("MainActivity", "Erreur lors du nettoyage: ${e.message}", e)
         }
     }
 }

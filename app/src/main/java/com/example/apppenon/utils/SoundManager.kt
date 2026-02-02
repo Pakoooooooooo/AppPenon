@@ -47,8 +47,7 @@ class SoundManager(private val context: Context) {
             Log.d(TAG, "🔊 Lecture du son: $soundPath")
 
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Erreur lecture son: ${e.message}")
-            e.printStackTrace()
+            Log.e(TAG, "❌ Erreur lecture son: ${e.message}", e)
         }
     }
 
