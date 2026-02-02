@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.apppenon.PenonSettingsManager
 import com.example.apppenon.UIStateManager
 import com.example.apppenon.model.Penon
 import com.example.apppenon.model.PenonReader
@@ -45,7 +44,6 @@ class MainActivity : AppCompatActivity() {
     lateinit var penonCardAdapter: PenonCardAdapter
 
     private lateinit var uiStateManager: UIStateManager
-    private lateinit var penonSettingsManager: PenonSettingsManager
     private lateinit var repository: PenonSettingsRepository
     private lateinit var voiceNotificationManager: VoiceNotificationManager
 
@@ -93,7 +91,6 @@ class MainActivity : AppCompatActivity() {
         loadKnownPenons()
 
         uiStateManager = UIStateManager(this)
-        penonSettingsManager = PenonSettingsManager(this, deviceList)
 
         // ✅ ÉTAPE 3 : Configurer l'adaptateur avec le launcher déjà prêt
         penonCardAdapter = PenonCardAdapter(
