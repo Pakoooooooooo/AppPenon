@@ -1,6 +1,6 @@
 package com.example.apppenon.activities
 
-import android.app.Activity
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -11,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import com.example.apppenon.R
 import com.example.apppenon.model.AppData
-import com.example.apppenon.simulation.SimulationConfig
+import com.example.apppenon.model.simulation.SimulationConfig
 
 /**
  * Activité des paramètres de l'application.
@@ -29,10 +29,11 @@ class SettingActivity : AppCompatActivity() {
     lateinit var tvSelectedFile: TextView
 
     // Launcher pour sélectionner un fichier CSV
+    @SuppressLint("SetTextI18n")
     private val selectFileLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
+        if (result.resultCode == RESULT_OK) {
             result.data?.data?.let { uri ->
                 // 🔑 IMPORTANT : Prendre la permission persistante sur l'URI
                 try {

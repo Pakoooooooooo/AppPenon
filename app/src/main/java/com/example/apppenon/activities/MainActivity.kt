@@ -1,6 +1,6 @@
 package com.example.apppenon.activities
 
-import android.app.Activity
+import android.annotation.SuppressLint
 import android.util.Log
 import android.content.Intent
 import android.os.Bundle
@@ -20,8 +20,8 @@ import com.example.apppenon.model.PenonReader
 import com.example.apppenon.adapters.PenonCardAdapter
 import com.example.apppenon.data.PenonSettingsRepository
 import com.example.apppenon.R
-import com.example.apppenon.simulation.SimulationConfig
-import com.example.apppenon.simulation.CSVSimulator
+import com.example.apppenon.model.simulation.SimulationConfig
+import com.example.apppenon.model.simulation.CSVSimulator
 import com.example.apppenon.utils.VoiceNotificationManager
 import kotlinx.coroutines.launch
 
@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
  * ✅ Crée dynamiquement les objets Penon
  * ✅ 🆕 Support du mode simulation depuis CSV
  */
+@Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
 
     lateinit var tvStatus: TextView
@@ -147,7 +148,6 @@ class MainActivity : AppCompatActivity() {
             penon = Penon(
                 penonName = "Penon ${macAddress.takeLast(5)}",
                 macAddress = macAddress,
-                rssi = true,
                 flowState = true,
                 editAttachedThreshold = 500,
                 sDFlowState = true,
@@ -166,6 +166,7 @@ class MainActivity : AppCompatActivity() {
         return penon
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun observeSettingsChanges() {
         lifecycleScope.launch {
             repository.observeAllPenons().collect { allPenons ->
@@ -181,6 +182,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     override fun onResume() {
         super.onResume()
         deviceList.forEach { penon ->
@@ -204,6 +206,7 @@ class MainActivity : AppCompatActivity() {
         rvPenonCards = findViewById(R.id.rvPenonCards)
     }
 
+    @SuppressLint("SetTextI18n")
     private fun setupButtonListeners() {
         // 🆕 Démarrer le scan (BLE ou Simulation)
         btnStartScan.setOnClickListener {
@@ -266,6 +269,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * 🆕 Démarre la simulation depuis le fichier CSV.
      */
+    @SuppressLint("SetTextI18n")
     private fun startSimulation() {
         val uri = SimulationConfig.csvFileUri ?: return
 
@@ -291,18 +295,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 🆕 Arrête complètement la simulation.
-     */
-    private fun stopSimulation() {
-        csvSimulator.stopSimulation()
-        tvStatus.text = "⏹️ Simulation arrêtée"
-        btnStopScan.text = "⏹️ Arrêter"
-        Toast.makeText(this, "Simulation arrêtée", Toast.LENGTH_SHORT).show()
-    }
-
-    /**
      * Arrête la simulation si elle est en cours (appelé lors du changement de mode).
      */
+    @SuppressLint("SetTextI18n")
     private fun ensureSimulationStopped() {
         if (csvSimulator.isRunning() || csvSimulator.isPaused()) {
             csvSimulator.stopSimulation()

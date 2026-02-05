@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import androidx.core.content.edit
 
 /**
  * Repository centralisé pour la gestion des paramètres Penon.
@@ -20,7 +21,7 @@ import kotlinx.coroutines.flow.combine
  * ✅ Identifiés par leur adresse MAC
  * ✅ Source unique de vérité (SharedPreferences + In-Memory)
  */
-class PenonSettingsRepository(private val context: Context) {
+class PenonSettingsRepository(context: Context) {
 
     private val sharedPref: SharedPreferences =
         context.getSharedPreferences("penon_data", Context.MODE_PRIVATE)
@@ -52,17 +53,7 @@ class PenonSettingsRepository(private val context: Context) {
     private fun addKnownMacAddress(macAddress: String) {
         val currentMacs = getAllKnownMacAddresses().toMutableSet()
         currentMacs.add(macAddress)
-        sharedPref.edit().putString(KNOWN_MACS_KEY, currentMacs.joinToString(",")).apply()
-    }
-
-    /**
-     * ✅ Obtient le StateFlow pour un Penon spécifique (par MAC)
-     */
-    fun getPenonFlow(macAddress: String): StateFlow<Penon?> {
-        if (!penonFlowMap.containsKey(macAddress)) {
-            penonFlowMap[macAddress] = MutableStateFlow(null)
-        }
-        return penonFlowMap[macAddress]!!.asStateFlow()
+        sharedPref.edit { putString(KNOWN_MACS_KEY, currentMacs.joinToString(",")) }
     }
 
     /**
@@ -105,10 +96,6 @@ class PenonSettingsRepository(private val context: Context) {
             "${penon.macAddress}_timeline",
             penon.timeline
         )
-        penon.rssi = sharedPref.getBoolean(
-            "${penon.macAddress}_rssi",
-            penon.rssi
-        )
         penon.flowState = sharedPref.getBoolean(
             "${penon.macAddress}_flowState",
             penon.flowState
@@ -132,6 +119,14 @@ class PenonSettingsRepository(private val context: Context) {
         penon.vbat = sharedPref.getBoolean(
             "${penon.macAddress}_vbat",
             penon.vbat
+        )
+        penon.avrMagZ = sharedPref.getBoolean(
+            "${penon.macAddress}_avrMagZ",
+            penon.avrMagZ
+        )
+        penon.avrAvrMagZ = sharedPref.getBoolean(
+            "${penon.macAddress}_avrAvrMagZ",
+            penon.avrAvrMagZ
         )
         penon.detached = sharedPref.getBoolean(
             "${penon.macAddress}_detached",
@@ -184,13 +179,14 @@ class PenonSettingsRepository(private val context: Context) {
         sharedPref.edit().apply {
             putString("${penon.macAddress}_penonName", penon.penonName)
             putInt("${penon.macAddress}_timeline", penon.timeline)
-            putBoolean("${penon.macAddress}_rssi", penon.rssi)
             putBoolean("${penon.macAddress}_flowState", penon.flowState)
             putBoolean("${penon.macAddress}_sDFlowState", penon.sDFlowState)
             putBoolean("${penon.macAddress}_meanAcc", penon.meanAcc)
             putBoolean("${penon.macAddress}_sDAcc", penon.sDAcc)
             putBoolean("${penon.macAddress}_maxAcc", penon.maxAcc)
             putBoolean("${penon.macAddress}_vbat", penon.vbat)
+            putBoolean("${penon.macAddress}_avrMagZ", penon.avrMagZ)
+            putBoolean("${penon.macAddress}_avrAvrMagZ", penon.avrAvrMagZ)
             putBoolean("${penon.macAddress}_detached", penon.detached)
             putString("${penon.macAddress}_labelAttache", penon.labelAttache)
             putString("${penon.macAddress}_labelDetache", penon.labelDetache)
@@ -224,14 +220,4 @@ class PenonSettingsRepository(private val context: Context) {
         Log.d(TAG, "🔄 StateFlow Penon (MAC: $macAddress) mis à jour")
     }
 
-    /**
-     * ✅ Récupère les settings courants d'un Penon (snapshot)
-     */
-    fun getPenonSettings(macAddress: String): Penon? {
-        if (macAddress.isEmpty()) return null
-
-        val penon = Penon(macAddress = macAddress)
-        loadPenon(penon)
-        return penon
-    }
 }

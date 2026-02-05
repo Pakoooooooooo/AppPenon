@@ -1,5 +1,6 @@
 package com.example.apppenon.activities
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -16,16 +17,15 @@ import androidx.appcompat.widget.SwitchCompat
 import com.example.apppenon.R
 import com.example.apppenon.data.PenonSettingsRepository
 import com.example.apppenon.model.Penon
-import com.example.apppenon.model.PenonDecodedData
 import com.example.apppenon.utils.VoiceNotificationManager
 import java.lang.ref.WeakReference
+import androidx.core.net.toUri
 
 class PenonsSettingsActivity : AppCompatActivity() {
 
     private lateinit var penon: Penon
     private lateinit var repository: PenonSettingsRepository
     private lateinit var voiceNotificationManager: VoiceNotificationManager
-    private var lastDecodedData: PenonDecodedData? = null
     private var hasUnsavedChanges = false
 
     // UI Components
@@ -56,9 +56,8 @@ class PenonsSettingsActivity : AppCompatActivity() {
     // Launchers pour sélectionner les fichiers audio
     private lateinit var soundAttacheLauncher: ActivityResultLauncher<Intent>
     private lateinit var soundDetacheLauncher: ActivityResultLauncher<Intent>
-    private lateinit var switchMagZ: SwitchCompat
     private lateinit var switchAvrMagZ: SwitchCompat
-    private lateinit var switchRSSI: SwitchCompat
+    private lateinit var switchAvrAvrMagZ: SwitchCompat
     private lateinit var switchFlowState: SwitchCompat
     private lateinit var switchSDFlowState: SwitchCompat
     private lateinit var switchMeanAcc: SwitchCompat
@@ -69,16 +68,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
     companion object {
         private var currentActivity: WeakReference<PenonsSettingsActivity>? = null
 
-        fun updateDecodedData(data: PenonDecodedData, penonMacAddress: String) {
-            currentActivity?.get()?.let { activity ->
-                if (!activity.isFinishing && !activity.isDestroyed &&
-                    activity.penon.macAddress == penonMacAddress) {
-                    activity.runOnUiThread {
-                        activity.displayDecodedData(data)
-                    }
-                }
-            }
-        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -143,6 +132,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         penon = Penon(macAddress = macAddress)
         try {
             repository.loadPenon(penon)
+            Log.d("PenonsSettings", "Après chargement - avrMagZ: ${penon.avrMagZ}, avrAvrMagZ: ${penon.avrAvrMagZ}")
         } catch (e: Exception) {
             Log.e("PenonsSettings", "Error loading penon: ${e.message}")
             Toast.makeText(this, "Erreur de chargement des données", Toast.LENGTH_SHORT).show()
@@ -199,8 +189,8 @@ class PenonsSettingsActivity : AppCompatActivity() {
         editTimeline = findViewById(R.id.edit_timeline)
 
         // ✅ CORRECTION: Associer les bons IDs
-        switchAvrMagZ = findViewById(R.id.switch_avr_avr_mag_z)  // "Avr Mag Z"
-        switchMagZ = findViewById(R.id.switch_avr_mag_z)          // "Mag Z"
+        switchAvrMagZ = findViewById(R.id.switch_avr_mag_z)          // ID = avr_mag_z → variable avrMagZ
+        switchAvrAvrMagZ = findViewById(R.id.switch_avr_avr_mag_z)   // ID = avr_avr_mag_z → variable avrAvrMagZ         // "Mag Z"
         switchFlowState = findViewById(R.id.switch_flow_state)
         switchSDFlowState = findViewById(R.id.switch_sd_flow_state)
         switchMeanAcc = findViewById(R.id.switch_mean_acc)
@@ -225,14 +215,15 @@ class PenonsSettingsActivity : AppCompatActivity() {
         btnCancel = findViewById(R.id.btn_cancel)
     }
 
+    @SuppressLint("SetTextI18n")
     private fun populateUI() {
         tvMacAddress.text = "MAC: ${penon.macAddress}"
         editPenonName.setText(penon.penonName)
         editTimeline.setText(penon.timeline.toString())
 
         // ✅ CORRECTION: Utiliser les bonnes propriétés
-        switchAvrMagZ.isChecked = penon.avrAvrMagZ  // avr_avr_mag_z
-        switchMagZ.isChecked = penon.avrMagZ         // avr_mag_z
+        switchAvrAvrMagZ.isChecked = penon.avrAvrMagZ  // avr_avr_mag_z
+        switchAvrMagZ.isChecked = penon.avrMagZ         // avr_mag_z
         switchFlowState.isChecked = penon.flowState
         switchSDFlowState.isChecked = penon.sDFlowState
         switchMeanAcc.isChecked = penon.meanAcc
@@ -246,10 +237,10 @@ class PenonsSettingsActivity : AppCompatActivity() {
         // Configuration sons/vocal
         switchUseSound.isChecked = penon.useSound
         if (penon.soundAttachePath.isNotEmpty()) {
-            tvSoundAttacheStatus.text = getFileName(Uri.parse(penon.soundAttachePath))
+            tvSoundAttacheStatus.text = getFileName(penon.soundAttachePath.toUri())
         }
         if (penon.soundDetachePath.isNotEmpty()) {
-            tvSoundDetacheStatus.text = getFileName(Uri.parse(penon.soundDetachePath))
+            tvSoundDetacheStatus.text = getFileName(penon.soundDetachePath.toUri())
         }
         updateSoundUIVisibility(penon.useSound)
 
@@ -317,9 +308,8 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
         // ✅ CORRECTION: Tous les switches qui existent
         listOf(
+            switchAvrAvrMagZ,
             switchAvrMagZ,
-            switchMagZ,
-            switchRSSI,
             switchFlowState,
             switchSDFlowState,
             switchMeanAcc,
@@ -332,70 +322,9 @@ class PenonsSettingsActivity : AppCompatActivity() {
         ).forEach { it.setOnCheckedChangeListener(switchListener) }
     }
 
-    private fun displayDecodedData(data: PenonDecodedData) {
-        lastDecodedData = data
-        tableDecodedData.removeAllViews()
-        tvNoData.visibility = android.view.View.GONE
-
-        checkAndAnnounceStateChange(data)
-
-        val paddingPx = resources.getDimensionPixelSize(R.dimen.table_padding)
-        val textSizeSp = resources.getDimension(R.dimen.table_text_size)
-
-        data.toDisplayMap().forEach { (key, value) ->
-            val row = TableRow(this)
-            val labelView = TextView(this).apply {
-                text = key
-                textSize = textSizeSp / resources.displayMetrics.scaledDensity
-                setPadding(paddingPx, paddingPx / 2, paddingPx, paddingPx / 2)
-                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.6f)
-            }
-            val valueView = TextView(this).apply {
-                text = value
-                textSize = textSizeSp / resources.displayMetrics.scaledDensity
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setPadding(paddingPx, paddingPx / 2, paddingPx, paddingPx / 2)
-                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.4f)
-            }
-            row.addView(labelView)
-            row.addView(valueView)
-            tableDecodedData.addView(row)
-        }
-    }
-
-    private fun checkAndAnnounceStateChange(data: PenonDecodedData) {
-        val isCurrentlyAttached = determineAttachedState(data)
-        val previousState = penon.lastAttachedState
-
-        if (previousState == null) {
-            penon.lastAttachedState = isCurrentlyAttached
-            Log.d("VoiceNotification", "🆕 État initial = $isCurrentlyAttached (pas d'annonce)")
-            return
-        }
-
-        if (previousState != isCurrentlyAttached) {
-            Log.d("VoiceNotification", "🔁 Changement d'état: $previousState → $isCurrentlyAttached")
-            voiceNotificationManager.announceStateChange(
-                penonName = penon.penonName,
-                isAttached = isCurrentlyAttached,
-                useSound = penon.useSound,
-                soundAttachePath = penon.soundAttachePath,
-                soundDetachePath = penon.soundDetachePath,
-                labelAttache = penon.labelAttache,
-                labelDetache = penon.labelDetache
-            )
-
-            penon.lastAttachedState = isCurrentlyAttached
-        }
-    }
-
-    private fun determineAttachedState(data: PenonDecodedData): Boolean {
-        return data.meanAcc > 0 && data.sdAcc > 0
-    }
-
     private fun showNoDataMessage() {
         tableDecodedData.removeAllViews()
-        tvNoData.visibility = android.view.View.VISIBLE
+        tvNoData.visibility = View.VISIBLE
     }
 
     private fun saveSettings() {
@@ -406,8 +335,8 @@ class PenonsSettingsActivity : AppCompatActivity() {
                 timeline = editTimeline.text.toString().toIntOrNull() ?: timeline
 
                 // ✅ CORRECTION: Mapper correctement les switches
-                avrAvrMagZ = switchAvrMagZ.isChecked  // Avr Mag Z
-                avrMagZ = switchMagZ.isChecked         // Mag Z
+                avrAvrMagZ = switchAvrAvrMagZ.isChecked
+                avrMagZ = switchAvrMagZ.isChecked
                 flowState = switchFlowState.isChecked
                 sDFlowState = switchSDFlowState.isChecked
                 meanAcc = switchMeanAcc.isChecked
@@ -428,7 +357,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
             }
 
             Log.d("PenonsSettings", "Penon object updated, attempting to save...")
-
+            Log.d("PenonsSettings", "Avant sauvegarde - avrMagZ: ${penon.avrMagZ}, avrAvrMagZ: ${penon.avrAvrMagZ}")
             repository.savePenon(penon)
 
             Log.d("PenonsSettings", "Repository save completed successfully")

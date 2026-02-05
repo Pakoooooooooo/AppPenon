@@ -1,15 +1,15 @@
-package com.example.apppenon.simulation
+package com.example.apppenon.model.simulation
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
-import android.os.ParcelUuid
 import java.lang.reflect.Constructor
 
 /**
  * Crée un ScanResult simulé pour injecter dans le callback BLE.
  * Utilise la réflexion pour créer des objets normalement construits par le système Android.
  */
+@Suppress("DEPRECATION")
 class MockScanResult(
     private val macAddress: String,
     private val rssi: Int,
@@ -26,7 +26,7 @@ class MockScanResult(
                 BluetoothDevice::class.java.getDeclaredConstructor(String::class.java)
             constructor.isAccessible = true
             constructor.newInstance(macAddress)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -42,7 +42,7 @@ class MockScanResult(
                 ByteArray::class.java
             )
             parseMethod.invoke(null, scanRecord) as? ScanRecord
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }

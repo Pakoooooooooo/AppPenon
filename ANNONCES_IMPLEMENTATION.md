@@ -217,13 +217,6 @@ putString("${penon.macAddress}_soundAttachePath", penon.soundAttachePath)
 putString("${penon.macAddress}_soundDetachePath", penon.soundDetachePath)
 ```
 
-### 9. Import nécessaire
-```kotlin
-import android.provider.OpenableColumns
-import android.net.Uri
-import android.view.View
-```
-
 ## 🎯 Utilisation
 
 1. **Mode Vocal (par défaut)** :

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F5F5F5">
@@ -19,7 +19,8 @@
             android:background="@android:color/white"
             android:elevation="4dp"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="12dp"
+            tools:ignore="UselessParent">
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -299,43 +300,7 @@
 
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#E0E0E0" />
-
             <!-- RSSI Setting -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/white"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:text="RSSI"
-                        android:textColor="#000000"
-                        android:textSize="16sp" />
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switch_rssi"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:checked="true" />
-                </RelativeLayout>
-
-            </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
@@ -354,7 +319,8 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    tools:ignore="UselessParent">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -394,7 +360,8 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    tools:ignore="UselessParent">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -433,7 +400,8 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    tools:ignore="UselessParent">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -471,7 +439,8 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    tools:ignore="UselessParent">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -510,7 +479,8 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    tools:ignore="UselessParent">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -549,7 +519,8 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    tools:ignore="UselessParent">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -654,6 +625,7 @@
                         android:id="@+id/edit_label_attache"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
+                        android:autofillHints="Attaché"
                         android:inputType="text"
                         android:hint="Ex: accroché, connecté, fixé"
                         android:gravity="center"
@@ -675,6 +647,7 @@
                         android:id="@+id/edit_label_detache"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
+                        android:autofillHints="Détaché"
                         android:inputType="text"
                         android:hint="Ex: décroché, déconnecté, libéré"
                         android:gravity="center"
@@ -852,6 +825,7 @@
                     android:id="@+id/edit_timeline"
                     android:layout_width="120dp"
                     android:layout_height="48dp"
+                    android:autofillHints="Timeline"
                     android:inputType="number"
                     android:text="20"
                     android:gravity="center"
@@ -907,6 +881,7 @@
 
     <!-- Bottom Button Bar -->
     <LinearLayout
+        style="?android:attr/buttonBarStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
@@ -917,6 +892,7 @@
 
         <Button
             android:id="@+id/btn_delete"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="1"
@@ -929,6 +905,7 @@
 
         <Button
             android:id="@+id/btn_cancel"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="1"
@@ -938,10 +915,12 @@
             android:textColor="#000000"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:backgroundTint="#E0E0E0" />
+            android:backgroundTint="#E0E0E0"
+            tools:ignore="ButtonOrder" />
 
         <Button
             android:id="@+id/btn_save"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="1"

@@ -24,7 +24,7 @@ class PenonReader(act: MainActivity) {
     val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter?.bluetoothLeScanner
     // Managers délégués
-    private val csvManager = CSVManager(act)
+    private val csvManager = CSVManager()
     private val dataParser = PenonDataParser()
     val bleScanManager = BLEScanManager(act, bluetoothLeScanner, csvManager, dataParser)
 

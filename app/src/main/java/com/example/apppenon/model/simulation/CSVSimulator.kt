@@ -1,6 +1,6 @@
-package com.example.apppenon.simulation
+package com.example.apppenon.model.simulation
 
-import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.net.Uri
 import android.os.Handler
@@ -247,14 +247,14 @@ class CSVSimulator(
 
             // Créer un ScanResult simulé
             val mockScanResult = MockScanResult(
-                    macAddress = frame.macAddress,
-                    rssi = frame.rssi,
-                    scanRecord = hexBytes
+                macAddress = frame.macAddress,
+                rssi = frame.rssi,
+                scanRecord = hexBytes
             )
 
             // Injecter dans le callback du BLEScanManager
             bleScanManager.bleScanCallback.onScanResult(
-                    android.bluetooth.le.ScanSettings.CALLBACK_TYPE_ALL_MATCHES,
+                    ScanSettings.CALLBACK_TYPE_ALL_MATCHES,
                     mockScanResult.toScanResult()
             )
 
@@ -279,14 +279,6 @@ class CSVSimulator(
      * Retourne le nombre de trames chargées.
      */
     fun getFrameCount(): Int = frames.size
-
-    /**
-     * Retourne la progression de la simulation (0.0 à 1.0).
-     */
-    fun getProgress(): Float {
-        return if (frames.isEmpty()) 0f
-        else currentFrameIndex.toFloat() / frames.size.toFloat()
-    }
 
     /**
      * Réinitialise la simulation au début.

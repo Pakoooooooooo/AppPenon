@@ -1,6 +1,7 @@
 package com.example.apppenon.model
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
@@ -56,7 +57,7 @@ class BLEScanManager(
         if (isValid) {
             Log.d(TAG, "isLadeSEBeacon: ✅ Signature valide détectée!")
         } else {
-            val actualPrefix = packetData.take(minOf(6, packetData.size))
+            packetData.take(minOf(6, packetData.size))
                 .joinToString(" ") { "%02X".format(it) }
         }
         
@@ -117,7 +118,7 @@ class BLEScanManager(
 
                 // Enregistrer si rec activé (peu importe le mode)
                 if (AppData.rec && csvManager.isRecordingActive()) {
-                    csvManager.saveToCSV(manufacturerData, rssi, currentFrameCount, 1, "000")
+                    csvManager.saveToCSV(manufacturerData, rssi, currentFrameCount, "000")
                 }
 
                 handler.post {
@@ -140,7 +141,7 @@ class BLEScanManager(
                         // Importer pour utiliser le callback statique
                         try {
                             val settingsActivityClass = Class.forName("com.example.apppenon.activities.PenonsSettingsActivity")
-                            val updateMethod = settingsActivityClass.getDeclaredMethod(
+                            settingsActivityClass.getDeclaredMethod(
                                 "updateDecodedData", 
                                 PenonDecodedData::class.java, 
                                 String::class.java
@@ -227,32 +228,24 @@ class BLEScanManager(
         isScanning = false
         csvManager.closeCSVFiles()
 
-        val (csvFile1, csvFile2) = csvManager.getCreatedFiles()
+        val csvFile = csvManager.getCreatedFiles()
 
         val statusMsg = when (AppData.mode) {
             0 -> "✓ Scan arrêté - ${act.penonCardAdapter.itemCount} Penon(s) détecté(s)"
             1 -> buildString {
                 appendLine("Scan arrêté - $frameCount")
-                if (csvFile1 != null) {
-                    appendLine("Fichier P1: ${csvFile1.name}")
-                }
-                if (csvFile2 != null) {
-                    appendLine("Fichier P2: ${csvFile2.name}")
+                if (csvFile != null) {
+                    appendLine("Fichier Penon: ${csvFile.name}")
                 }
             }
             else -> "Scan arrêté"
         }
         act.tvStatus.text = statusMsg
 
-        if (AppData.mode == 1 && (csvFile1 != null || csvFile2 != null)) {
+        if (AppData.mode == 1 && (csvFile != null)) {
             val toastMsg = buildString {
                 appendLine("Données enregistrées:")
-                if (csvFile1 != null) {
-                    appendLine("P1: ${csvFile1.absolutePath}")
-                }
-                if (csvFile2 != null) {
-                    appendLine("P2: ${csvFile2.absolutePath}")
-                }
+                appendLine("Penon: ${csvFile.absolutePath}")
             }
             Toast.makeText(act, toastMsg, Toast.LENGTH_LONG).show()
         } else {
@@ -264,6 +257,7 @@ class BLEScanManager(
      * Callback BLE qui traite les résultats du scan.
      */
     val bleScanCallback = object : ScanCallback() {
+        @SuppressLint("SetTextI18n")
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             if (ActivityCompat.checkSelfPermission(
                     act,
@@ -285,8 +279,6 @@ class BLEScanManager(
                     ?: scanRecord?.bytes
 
                 if (manufacturerData != null && manufacturerData.isNotEmpty()) {
-                    val hexString = manufacturerData.take(minOf(20, manufacturerData.size))
-                        .joinToString(" ") { "%02X".format(it) }
 
                     if (isLadeSEBeacon(manufacturerData)) {
 
@@ -311,6 +303,7 @@ class BLEScanManager(
             }
         }
 
+        @SuppressLint("SetTextI18n")
         override fun onScanFailed(errorCode: Int) {
             handler.post {
                 act.tvStatus.text = "Échec du scan BLE: $errorCode"

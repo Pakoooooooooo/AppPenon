@@ -1,5 +1,6 @@
 package com.example.apppenon.adapters
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,7 +14,7 @@ import kotlin.math.abs
 
 class PenonCardAdapter (
     private val onPenonClick: ((Penon) -> Unit)? = null,
-    private val penonSettings: MutableList<com.example.apppenon.model.Penon> = mutableListOf(),
+    private val penonSettings: MutableList<Penon> = mutableListOf(),
     private val voiceNotificationManager: VoiceNotificationManager? = null
 ) : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolder>() {
 
@@ -32,6 +33,7 @@ class PenonCardAdapter (
         return PenonViewHolder(view)
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: PenonViewHolder, position: Int) {
         val penon = penonList[position]
 

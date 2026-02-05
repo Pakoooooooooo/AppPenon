@@ -1,4 +1,4 @@
-package com.example.apppenon.simulation
+package com.example.apppenon.model.simulation
 
 import android.net.Uri
 
@@ -33,17 +33,7 @@ var csvFileName: String = "Aucun fichier"
  */
 var playbackSpeed: Float = 1.0f
 
-/**
- * Réinitialise la configuration de simulation.
- */
-fun reset() {
-    isSimulationMode = false
-    csvFileUri = null
-    csvFileName = "Aucun fichier"
-    playbackSpeed = 1.0f
-}
-
-/**
+    /**
  * Vérifie si la simulation est prête à démarrer.
  */
 fun isReadyToSimulate(): Boolean {

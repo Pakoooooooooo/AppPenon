@@ -14,16 +14,4 @@ data class PenonDecodedData(
     val maxAcc: Int = 0,
     val timestamp: Long = System.currentTimeMillis()
 ) {
-    fun toDisplayMap(): Map<String, String> {
-        return mapOf(
-            "Frame" to frameCount.toString(),
-            "Type" to frameType.toString(),
-            "Vbat (V)" to "%.3f".format(vbat),
-            "MagZ Mean" to meanMagZ.toString(),
-            "MagZ SD" to sdMagZ.toString(),
-            "Acc Mean" to meanAcc.toString(),
-            "Acc SD" to sdAcc.toString(),
-            "Acc Max" to maxAcc.toString()
-        )
-    }
 }
