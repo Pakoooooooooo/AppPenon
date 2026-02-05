@@ -107,6 +107,7 @@
                     android:id="@+id/edit_penon_name"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
+                    android:autofillHints="Nom"
                     android:inputType="text"
                     android:hint="Entrez le nom du penon"
                     android:padding="12dp"
@@ -164,6 +165,7 @@
                     android:id="@+id/edit_attached_threshold"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
+                    android:autofillHints="Seuil"
                     android:background="@android:drawable/edit_text"
                     android:gravity="center"
                     android:hint="Ex: 500"
@@ -220,6 +222,7 @@
                     android:id="@+id/edit_detached"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
+                    android:autofillHints="Détaché"
                     android:background="@android:drawable/edit_text"
                     android:gravity="center"
                     android:inputType="numberDecimal"
@@ -245,7 +248,8 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    tools:ignore="UselessParent">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -283,7 +287,8 @@
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    tools:ignore="UselessParent">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -658,7 +663,8 @@
                         android:gravity="center"
                         android:background="@android:drawable/edit_text"
                         android:textColor="#000000"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        tools:ignore="TooManyViews" />
                 </LinearLayout>
 
                 <!-- Section Sons Personnalisés -->
@@ -830,6 +836,7 @@
                     android:id="@+id/edit_timeline"
                     android:layout_width="120dp"
                     android:layout_height="48dp"
+                    android:autofillHints="Timeline"
                     android:inputType="number"
                     android:text="20"
                     android:gravity="center"
@@ -886,6 +893,7 @@
     <!-- Bottom Button Bar -->
     <LinearLayout
         android:id="@+id/bottom_button_bar"
+        style="?android:attr/buttonBarStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
@@ -896,6 +904,7 @@
 
         <Button
             android:id="@+id/btn_delete"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="1"
@@ -908,6 +917,7 @@
 
         <Button
             android:id="@+id/btn_cancel"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="1"
@@ -917,10 +927,12 @@
             android:textColor="#000000"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:backgroundTint="#E0E0E0" />
+            android:backgroundTint="#E0E0E0"
+            tools:ignore="ButtonOrder" />
 
         <Button
             android:id="@+id/btn_save"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="1"
