@@ -21,12 +21,7 @@ class PenonCardAdapter (
 
     class PenonViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvPenonName: TextView = view.findViewById(R.id.tvPenonName)
-        val tvRssi: TextView = view.findViewById(R.id.tvRssi)
         val tvMacAddress: TextView = view.findViewById(R.id.tvMacAddress)
-        val tvBattery: TextView = view.findViewById(R.id.tvBattery)
-        val tvFlowState: TextView = view.findViewById(R.id.tvFlowState)
-        val tvSDFlowState: TextView = view.findViewById(R.id.tvSDFlowState)
-        val tvLastUpdate: TextView = view.findViewById(R.id.tvLastUpdate)
         val tvAttachedStatus: TextView = view.findViewById(R.id.tvAttachedStatus)
         val tvData: TextView = view.findViewById(R.id.tvData)
     }
@@ -47,7 +42,7 @@ class PenonCardAdapter (
         val nameToDisplay = settings?.penonName ?: penon.penonName
         val threshold = settings?.editAttachedThreshold ?: 500
 
-        // 2. Mise à jour des textes
+        // 2. Mise à jour des textes en fonction des paramètres de chaque penon
         holder.tvPenonName.text = nameToDisplay
         holder.tvMacAddress.text = "MAC: ${penon.macAddress}"
         var print = ""

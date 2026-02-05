@@ -6,6 +6,7 @@ import java.nio.ByteOrder
 import kotlin.math.abs
 
 class PenonState {
+    // Variables contenant les données reçues par bluetooth
     private val TAG = "PenonState"
     var frame_cnt: Long = 0
     var frame_type: Int = 0

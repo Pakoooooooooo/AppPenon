@@ -2,9 +2,9 @@ package com.example.apppenon.model
 import java.io.Serializable
 
 data class Penon (
+    //Variables modifiables par l'utilisateur
     var penonName: String = "penon",
     var macAddress: String = "00:00:00:00:00:00",
-    var rssi: Boolean = false,
     var flowState: Boolean = false,
     var sDFlowState: Boolean = false,
     var meanAcc: Boolean = false,

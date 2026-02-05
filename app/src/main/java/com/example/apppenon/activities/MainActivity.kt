@@ -326,6 +326,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun updateColor(){
+        // Change la couleur des boutons en fonction de l'état actuel
         if (btnStartScan.isEnabled) {
             btnStartScan.setBackgroundColor(resources.getColor(R.color.grey))
             btnStartScan.setTextColor(resources.getColor(R.color.white))
@@ -348,6 +349,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        // 🆕 Arrêter la simulation avant la destruction de l'activité
         super.onDestroy()
         try {
             csvSimulator.stopSimulation()

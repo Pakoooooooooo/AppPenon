@@ -201,11 +201,10 @@ class PenonsSettingsActivity : AppCompatActivity() {
         // ✅ CORRECTION: Associer les bons IDs
         switchAvrMagZ = findViewById(R.id.switch_avr_avr_mag_z)  // "Avr Mag Z"
         switchMagZ = findViewById(R.id.switch_avr_mag_z)          // "Mag Z"
-        switchRSSI = findViewById(R.id.switch_rssi)
         switchFlowState = findViewById(R.id.switch_flow_state)
         switchSDFlowState = findViewById(R.id.switch_sd_flow_state)
         switchMeanAcc = findViewById(R.id.switch_mean_acc)
-        switchMaxAcc = findViewById(R.id.switch_max_acc)  // ✅ AJOUTÉ
+        switchMaxAcc = findViewById(R.id.switch_max_acc)
         switchSDAcc = findViewById(R.id.switch_sd_acc)
         switchVbat = findViewById(R.id.switch_vbat)
         switchDetached = findViewById(R.id.switch_detached)
@@ -234,7 +233,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
         // ✅ CORRECTION: Utiliser les bonnes propriétés
         switchAvrMagZ.isChecked = penon.avrAvrMagZ  // avr_avr_mag_z
         switchMagZ.isChecked = penon.avrMagZ         // avr_mag_z
-        switchRSSI.isChecked = penon.rssi
         switchFlowState.isChecked = penon.flowState
         switchSDFlowState.isChecked = penon.sDFlowState
         switchMeanAcc.isChecked = penon.meanAcc
@@ -410,7 +408,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
                 // ✅ CORRECTION: Mapper correctement les switches
                 avrAvrMagZ = switchAvrMagZ.isChecked  // Avr Mag Z
                 avrMagZ = switchMagZ.isChecked         // Mag Z
-                rssi = switchRSSI.isChecked
                 flowState = switchFlowState.isChecked
                 sDFlowState = switchSDFlowState.isChecked
                 meanAcc = switchMeanAcc.isChecked

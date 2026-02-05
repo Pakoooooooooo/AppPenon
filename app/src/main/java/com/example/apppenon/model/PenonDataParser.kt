@@ -14,8 +14,7 @@ import java.nio.ByteOrder
 class PenonDataParser {
     
     private val TAG = "eTT-SAIL-BLE"
-    private var lastFrameCnt1 = -1L
-    private var lastFrameCnt2 = -1L
+    private var lastFrameCnt = -1L
 
     /**
      * Extrait les données principales du Penon: batterie, débit et numéro de trame.
@@ -87,10 +86,8 @@ class PenonDataParser {
             Log.d(TAG, "Penon $penonNumber - Données complètes: $fullHex")
 
             var manufacturerData = data
-            var dataStartOffset = 0
 
             var offset = 0
-            var foundManufacturerData = false
 
             while (offset < data.size - 2) {
                 val length = data[offset].toInt() and 0xFF
@@ -99,9 +96,7 @@ class PenonDataParser {
                 val type = data[offset + 1].toInt() and 0xFF
 
                 if (type == 0xFF) {
-                    dataStartOffset = offset + 2
                     manufacturerData = data.copyOfRange(offset + 2, minOf(offset + 1 + length, data.size))
-                    foundManufacturerData = true
                     break
                 }
 
@@ -167,7 +162,6 @@ class PenonDataParser {
             val meanMagZ = buffer.short.toInt()
             val sdMagZ = buffer.short.toInt()
             val meanAcc = buffer.short.toInt()
-            val sdAcc = buffer.short.toInt()
             val maxAcc = buffer.short.toInt()
 
             val vbatV = vbat / 1000.0
@@ -175,19 +169,13 @@ class PenonDataParser {
                     vbatV in 2.0..4.5 &&
                     frameType in 0..255
 
-            val lastFrameCnt = if (penonNumber == 1) lastFrameCnt1 else lastFrameCnt2
-
             val lostFrames = if (lastFrameCnt >= 0 && frameCnt > lastFrameCnt) {
                 val lost = frameCnt - lastFrameCnt - 1
                 if (lost > 0) " ⚠️ $lost trame(s) perdue(s)" else ""
             } else ""
 
             if (isCoherent && lastFrameCnt < frameCnt) {
-                if (penonNumber == 1) {
-                    lastFrameCnt1 = frameCnt
-                } else {
-                    lastFrameCnt2 = frameCnt
-                }
+                lastFrameCnt = frameCnt
             }
 
             val coherentMark = if (isCoherent) "✅" else "❌"
@@ -210,7 +198,6 @@ class PenonDataParser {
      * Réinitialise les compteurs de trame.
      */
     fun resetFrameCounters() {
-        lastFrameCnt1 = -1
-        lastFrameCnt2 = -1
+        lastFrameCnt = -1
     }
 }
