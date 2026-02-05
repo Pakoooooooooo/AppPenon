@@ -23,17 +23,18 @@ class PenonDataParser {
      */
     fun extractPenonData(data: ByteArray): Triple<Float, Int, Long>? {
         return try {
-            if (data.size < 17) return null
+            if (data.size < 18) return null
 
             val buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN)
             buffer.position(0)
 
             val frameCnt = buffer.int.toLong() and 0xFFFFFFFFL
             buffer.get() // frameType
+            buffer.get() // padding (alignement struct C)
             val vbat = buffer.short.toInt()
             val meanMagZ = buffer.short.toInt()
 
-            val battery = vbat / 1000.0f
+            val battery = vbat / 100.0f
             val flowState = meanMagZ
 
             Triple(battery, flowState, frameCnt)
@@ -47,13 +48,14 @@ class PenonDataParser {
      */
     fun decodePenonData(data: ByteArray): PenonDecodedData? {
         return try {
-            if (data.size < 17) return null
+            if (data.size < 18) return null
 
             val buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN)
             buffer.position(0)
 
             val frameCount = buffer.int.toLong() and 0xFFFFFFFFL
             val frameType = buffer.get().toInt() and 0xFF
+            buffer.get() // padding (alignement struct C)
             val vbat = buffer.short.toInt()
             val meanMagZ = buffer.short.toInt()
             val sdMagZ = buffer.short.toInt()
@@ -64,7 +66,7 @@ class PenonDataParser {
             PenonDecodedData(
                 frameCount = frameCount,
                 frameType = frameType,
-                vbat = vbat / 1000.0,
+                vbat = vbat / 100.0,
                 meanMagZ = meanMagZ,
                 sdMagZ = sdMagZ,
                 meanAcc = meanAcc,
@@ -110,9 +112,9 @@ class PenonDataParser {
 
             val dataHex = manufacturerData.joinToString(" ") { "%02X".format(it) }
 
-            if (manufacturerData.size < 17) {
+            if (manufacturerData.size < 18) {
                 return "⚠️ Données insuffisantes (${manufacturerData.size} octets)\n" +
-                        "Minimum requis: 17 octets\n\n" +
+                        "Minimum requis: 18 octets\n\n" +
                         "HEX: $dataHex"
             }
 
@@ -120,13 +122,13 @@ class PenonDataParser {
 
             results.add(testDecode(manufacturerData, 0, ByteOrder.LITTLE_ENDIAN, "Sans offset, LE", penonNumber))
 
-            if (manufacturerData.size >= 19) {
+            if (manufacturerData.size >= 20) {
                 results.add(testDecode(manufacturerData, 2, ByteOrder.LITTLE_ENDIAN, "Offset +2, LE", penonNumber))
             }
 
             results.add(testDecode(manufacturerData, 0, ByteOrder.BIG_ENDIAN, "Sans offset, BE", penonNumber))
 
-            if (manufacturerData.size >= 19) {
+            if (manufacturerData.size >= 20) {
                 results.add(testDecode(manufacturerData, 2, ByteOrder.BIG_ENDIAN, "Offset +2, BE", penonNumber))
             }
 
@@ -154,7 +156,7 @@ class PenonDataParser {
      */
     private fun testDecode(data: ByteArray, offset: Int, order: ByteOrder, label: String, penonNumber: Int): String {
         return try {
-            if (data.size < offset + 17) {
+            if (data.size < offset + 18) {
                 return "[$label] Taille insuffisante"
             }
 
@@ -163,6 +165,7 @@ class PenonDataParser {
 
             val frameCnt = buffer.int.toLong() and 0xFFFFFFFFL
             val frameType = buffer.get().toInt() and 0xFF
+            buffer.get() // padding (alignement struct C)
             val vbat = buffer.short.toInt()
             val meanMagZ = buffer.short.toInt()
             val sdMagZ = buffer.short.toInt()
@@ -170,7 +173,7 @@ class PenonDataParser {
             val sdAcc = buffer.short.toInt()
             val maxAcc = buffer.short.toInt()
 
-            val vbatV = vbat / 1000.0
+            val vbatV = vbat / 100.0
             val isCoherent = frameCnt in 0..100000000 &&
                     vbatV in 2.0..4.5 &&
                     frameType in 0..255
@@ -197,8 +200,8 @@ class PenonDataParser {
                 appendLine("  Frame: $frameCnt$lostFrames")
                 appendLine("  Type: $frameType")
                 appendLine("  Vbat: ${"%.3f".format(vbatV)} V")
-                appendLine("  MagZ: mean=${meanMagZ/1000.0}mT, sd=${sdMagZ/1000.0}mT")
-                appendLine("  Acc: mean=${meanAcc/1000.0}g, max=${maxAcc/1000.0}g")
+                appendLine("  MagZ: mean=${meanMagZ} mT×10⁻³, sd=${sdMagZ} mT×10⁻³")
+                appendLine("  Acc: mean=${meanAcc} m.s⁻²×10⁻³, max=${maxAcc} m.s⁻²×10⁻³")
             }
 
         } catch (e: Exception) {

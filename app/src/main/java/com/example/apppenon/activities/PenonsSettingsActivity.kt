@@ -57,7 +57,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
     private lateinit var soundAttacheLauncher: ActivityResultLauncher<Intent>
     private lateinit var soundDetacheLauncher: ActivityResultLauncher<Intent>
     private lateinit var switchMagZ: SwitchCompat
-    private lateinit var switchAvrMagZ: SwitchCompat
     private lateinit var switchRSSI: SwitchCompat
     private lateinit var switchFlowState: SwitchCompat
     private lateinit var switchSDFlowState: SwitchCompat
@@ -198,9 +197,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         editAttachedThreshold = findViewById(R.id.edit_attached_threshold)
         editTimeline = findViewById(R.id.edit_timeline)
 
-        // ✅ CORRECTION: Associer les bons IDs
-        switchAvrMagZ = findViewById(R.id.switch_avr_avr_mag_z)  // "Avr Mag Z"
-        switchMagZ = findViewById(R.id.switch_avr_mag_z)          // "Mag Z"
+        switchMagZ = findViewById(R.id.switch_avr_mag_z)
         switchRSSI = findViewById(R.id.switch_rssi)
         switchFlowState = findViewById(R.id.switch_flow_state)
         switchSDFlowState = findViewById(R.id.switch_sd_flow_state)
@@ -231,9 +228,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         editPenonName.setText(penon.penonName)
         editTimeline.setText(penon.timeline.toString())
 
-        // ✅ CORRECTION: Utiliser les bonnes propriétés
-        switchAvrMagZ.isChecked = penon.avrAvrMagZ  // avr_avr_mag_z
-        switchMagZ.isChecked = penon.avrMagZ         // avr_mag_z
+        switchMagZ.isChecked = penon.avrMagZ
         switchRSSI.isChecked = penon.rssi
         switchFlowState.isChecked = penon.flowState
         switchSDFlowState.isChecked = penon.sDFlowState
@@ -317,9 +312,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
             editLabelDetache
         ).forEach { it.addTextChangedListener(textWatcher) }
 
-        // ✅ CORRECTION: Tous les switches qui existent
         listOf(
-            switchAvrMagZ,
             switchMagZ,
             switchRSSI,
             switchFlowState,
@@ -407,9 +400,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
                 penonName = editPenonName.text.toString()
                 timeline = editTimeline.text.toString().toIntOrNull() ?: timeline
 
-                // ✅ CORRECTION: Mapper correctement les switches
-                avrAvrMagZ = switchAvrMagZ.isChecked  // Avr Mag Z
-                avrMagZ = switchMagZ.isChecked         // Mag Z
+                    avrMagZ = switchMagZ.isChecked
                 rssi = switchRSSI.isChecked
                 flowState = switchFlowState.isChecked
                 sDFlowState = switchSDFlowState.isChecked

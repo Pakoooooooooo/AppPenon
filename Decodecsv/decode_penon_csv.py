@@ -30,12 +30,13 @@ class PenonDecoder:
         Structure BLE:
         - Header (3 bytes): 02 01 06
         - Device Name AD (variable): longueur + type + nom
-        - Manufacturer Data AD: longueur + FF + DONNÉES_PENON (19 bytes)
+        - Manufacturer Data AD: longueur + FF + DONNÉES_PENON (20 bytes)
 
         IMPORTANT: Les données Penon commencent DIRECTEMENT après 0xFF,
         le "Company ID" fait partie du frame count (uint32) !
+        Note: 1 byte de padding existe après frame_type (alignement struct C).
 
-        Retourne les données Penon (19 bytes) ou None si non trouvé.
+        Retourne les données Penon (20 bytes) ou None si non trouvé.
         """
         offset = 0
         while offset < len(ble_packet):
@@ -66,15 +67,16 @@ class PenonDecoder:
         """
         Décode une trame Penon
 
-        Format des données (17 bytes minimum) :
+        Format des données (18 bytes minimum, avec padding compilateur C) :
         - Bytes 0-3  : Frame Count (uint32, little-endian)
         - Byte  4    : Frame Type (uint8)
-        - Bytes 5-6  : Vbat (int16, little-endian) en millivolts
-        - Bytes 7-8  : Mean MagZ (int16, little-endian)
-        - Bytes 9-10 : SD MagZ (int16, little-endian)
-        - Bytes 11-12: Mean Acc (int16, little-endian)
-        - Bytes 13-14: SD Acc (int16, little-endian)
-        - Bytes 15-16: Max Acc (int16, little-endian)
+        - Byte  5    : Padding (alignement struct C)
+        - Bytes 6-7  : Vbat (int16, little-endian) en centivolts
+        - Bytes 8-9  : Mean MagZ (int16, little-endian) en Tesla × 10⁻³
+        - Bytes 10-11: SD MagZ (int16, little-endian) en Tesla × 10⁻³
+        - Bytes 12-13: Mean Acc (int16, little-endian) en m.s⁻² × 10⁻³
+        - Bytes 14-15: SD Acc (int16, little-endian) en m.s⁻² × 10⁻³
+        - Bytes 16-17: Max Acc (int16, little-endian) en m.s⁻² × 10⁻³
         """
         # Si c'est un paquet BLE complet (commence par 02 01 06), extraire les données Penon
         if len(data) > 30 and data[0:3] == b'\x02\x01\x06':
@@ -83,27 +85,31 @@ class PenonDecoder:
                 return None
             data = penon_data
 
-        if len(data) < 17:
+        if len(data) < 18:
             return None
 
         try:
-            # Décoder selon le format little-endian
+            # Décoder selon le format little-endian (avec padding après frame_type)
             frame_cnt = struct.unpack('<I', data[0:4])[0]
             frame_type = data[4]
-            vbat_mv = struct.unpack('<h', data[5:7])[0]
-            mean_mag_z = struct.unpack('<h', data[7:9])[0]
-            sd_mag_z = struct.unpack('<h', data[9:11])[0]
-            mean_acc = struct.unpack('<h', data[11:13])[0]
-            sd_acc = struct.unpack('<h', data[13:15])[0]
-            max_acc = struct.unpack('<h', data[15:17])[0]
+            # data[5] = padding (alignement struct C, ignoré)
+            vbat_cv = struct.unpack('<h', data[6:8])[0]
+            mean_mag_z = struct.unpack('<h', data[8:10])[0]
+            sd_mag_z = struct.unpack('<h', data[10:12])[0]
+            mean_acc = struct.unpack('<h', data[12:14])[0]
+            sd_acc = struct.unpack('<h', data[14:16])[0]
+            max_acc = struct.unpack('<h', data[16:18])[0]
 
             # Calculer les valeurs physiques
-            vbat = vbat_mv / 1000.0  # Volts
-            mean_mag_z_mt = mean_mag_z / 1000.0  # milliTesla
-            sd_mag_z_mt = sd_mag_z / 1000.0  # milliTesla
-            mean_acc_g = mean_acc / 1000.0  # g
-            sd_acc_g = sd_acc / 1000.0  # g
-            max_acc_g = max_acc / 1000.0  # g
+            vbat = vbat_cv / 100.0  # centivolts → Volts
+            # Les valeurs brutes sont déjà en unités physiques selon la fiche technique
+            # mean_mag_z est en Tesla × 10⁻³ (milliTesla)
+            # mean_acc est en m.s⁻² × 10⁻³
+            mean_mag_z_mt = mean_mag_z / 1000.0  # Tesla (valeur brute / 1000)
+            sd_mag_z_mt = sd_mag_z / 1000.0  # Tesla
+            mean_acc_ms2 = mean_acc / 1000.0  # m.s⁻²
+            sd_acc_ms2 = sd_acc / 1000.0  # m.s⁻²
+            max_acc_ms2 = max_acc / 1000.0  # m.s⁻²
 
             # Calculer Flow State (valeur absolue du champ magnétique moyen)
             flow_state = abs(mean_mag_z)
@@ -117,23 +123,23 @@ class PenonDecoder:
 
             self.last_frame_cnt[penon_id] = frame_cnt
 
-            # Déterminer l'état attaché/détaché (threshold par défaut: 500)
-            is_attached = flow_state >= 500
+            # Déterminer l'état attaché/détaché (threshold par défaut: 3500)
+            is_attached = flow_state >= 3500
 
             return {
                 'frame_count': frame_cnt,
                 'frame_type': frame_type,
-                'vbat': round(vbat, 3),
+                'vbat': round(vbat, 2),
                 'mean_mag_z': mean_mag_z,
                 'sd_mag_z': sd_mag_z,
                 'mean_acc': mean_acc,
                 'sd_acc': sd_acc,
                 'max_acc': max_acc,
-                'mean_mag_z_mt': round(mean_mag_z_mt, 3),
-                'sd_mag_z_mt': round(sd_mag_z_mt, 3),
-                'mean_acc_g': round(mean_acc_g, 3),
-                'sd_acc_g': round(sd_acc_g, 3),
-                'max_acc_g': round(max_acc_g, 3),
+                'mean_mag_z_T': round(mean_mag_z_mt, 6),
+                'sd_mag_z_T': round(sd_mag_z_mt, 6),
+                'mean_acc_ms2': round(mean_acc_ms2, 3),
+                'sd_acc_ms2': round(sd_acc_ms2, 3),
+                'max_acc_ms2': round(max_acc_ms2, 3),
                 'flow_state': flow_state,
                 'is_attached': is_attached,
                 'lost_frames': lost_frames
@@ -172,7 +178,7 @@ def decode_csv(input_file: str, output_file: str, hex_column: str = 'hex_data',
         new_fields = [
             'frame_count', 'frame_type', 'vbat',
             'mean_mag_z', 'sd_mag_z', 'mean_acc', 'sd_acc', 'max_acc',
-            'mean_mag_z_mt', 'sd_mag_z_mt', 'mean_acc_g', 'sd_acc_g', 'max_acc_g',
+            'mean_mag_z_T', 'sd_mag_z_T', 'mean_acc_ms2', 'sd_acc_ms2', 'max_acc_ms2',
             'flow_state', 'is_attached', 'lost_frames'
         ]
         output_fields.extend(new_fields)

@@ -149,7 +149,7 @@ class MainActivity : AppCompatActivity() {
                 macAddress = macAddress,
                 rssi = true,
                 flowState = true,
-                editAttachedThreshold = 500,
+                editAttachedThreshold = 3500,
                 sDFlowState = true,
             )
 

@@ -12,12 +12,11 @@ data class Penon (
     var maxAcc: Boolean = false,
     var vbat: Boolean = false,
     var detached: Boolean = false,
-    var editAttachedThreshold: Int = 500,
+    var editAttachedThreshold: Int = 3500,
     var count: Boolean = true,
     var ids: Boolean = false,
     var timeline: Int = 0,
     var avrMagZ: Boolean = true,
-    var avrAvrMagZ: Boolean = true,
 
     // Labels personnalisés pour les annonces vocales
     var labelAttache: String = "attaché",

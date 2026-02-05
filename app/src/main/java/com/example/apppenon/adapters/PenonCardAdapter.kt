@@ -45,7 +45,7 @@ class PenonCardAdapter (
         val settings = penonSettings.find { it.macAddress == penon.macAddress }
 
         val nameToDisplay = settings?.penonName ?: penon.penonName
-        val threshold = settings?.editAttachedThreshold ?: 500
+        val threshold = settings?.editAttachedThreshold ?: 3500
 
         // 2. Mise à jour des textes
         holder.tvPenonName.text = nameToDisplay
@@ -58,16 +58,13 @@ class PenonCardAdapter (
             print += "Vbat: ${penon.state.vbat} V\n"
         }
         if (settings?.avrMagZ == true) {
-            print += "MagZ: ${abs(penon.state.avr_mag_z/100)} Tx10-1\n"
-        }
-        if (settings?.avrAvrMagZ == true) {
-            print += "AvrMagZ: ${penon.state.avr_avr_mag_z/100} Tx10-1\n"
+            print += "MagZ: ${abs(penon.state.avr_mag_z).toInt()} mT×10⁻³\n"
         }
         if (settings?.meanAcc == true) {
-            print += "AvrAcc: ${penon.state.avr_acc/1000} m.s-2\n"
+            print += "AvrAcc: ${penon.state.avr_acc.toInt()} m.s⁻²×10⁻³\n"
         }
         if (settings?.maxAcc == true) {
-            print += "MaxAcc: ${penon.state.max_acc/1000} m.s-2\n"
+            print += "MaxAcc: ${penon.state.max_acc.toInt()} m.s⁻²×10⁻³\n"
         }
         holder.tvData.text = print
 
