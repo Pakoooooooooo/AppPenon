@@ -57,6 +57,9 @@ class PenonCardAdapter (
         if (settings?.avrMagZ == true) {
             print += "MagZ: ${penon.state.avr_mag_z.toInt()} mT×10⁻³\n"
         }
+        if (settings?.avrAvrMagZ == true) {
+            print += "AvrMagZ: ${penon.state.avr_avr_mag_z.toInt()} mT×10⁻³\n"
+        }
         if (settings?.meanAcc == true) {
             print += "AvrAcc: ${penon.state.avr_acc.toInt()} m.s⁻²×10⁻³\n"
         }

@@ -57,6 +57,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
     private lateinit var soundAttacheLauncher: ActivityResultLauncher<Intent>
     private lateinit var soundDetacheLauncher: ActivityResultLauncher<Intent>
     private lateinit var switchAvrMagZ: SwitchCompat
+    private lateinit var switchAvrAvrMagZ: SwitchCompat
     private lateinit var switchFlowState: SwitchCompat
     private lateinit var switchSDFlowState: SwitchCompat
     private lateinit var switchMeanAcc: SwitchCompat
@@ -188,6 +189,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         editTimeline = findViewById(R.id.edit_timeline)
 
         switchAvrMagZ = findViewById(R.id.switch_avr_mag_z)
+        switchAvrAvrMagZ = findViewById(R.id.switch_avr_avr_mag_z)
         switchFlowState = findViewById(R.id.switch_flow_state)
         switchSDFlowState = findViewById(R.id.switch_sd_flow_state)
         switchMeanAcc = findViewById(R.id.switch_mean_acc)
@@ -219,6 +221,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         editTimeline.setText(penon.timeline.toString())
 
         switchAvrMagZ.isChecked = penon.avrMagZ
+        switchAvrAvrMagZ.isChecked = penon.avrAvrMagZ
         switchFlowState.isChecked = penon.flowState
         switchSDFlowState.isChecked = penon.sDFlowState
         switchMeanAcc.isChecked = penon.meanAcc
@@ -303,6 +306,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
         listOf(
             switchAvrMagZ,
+            switchAvrAvrMagZ,
             switchFlowState,
             switchSDFlowState,
             switchMeanAcc,
@@ -328,6 +332,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
                 timeline = editTimeline.text.toString().toIntOrNull() ?: timeline
 
                 avrMagZ = switchAvrMagZ.isChecked
+                avrAvrMagZ = switchAvrAvrMagZ.isChecked
                 flowState = switchFlowState.isChecked
                 sDFlowState = switchSDFlowState.isChecked
                 meanAcc = switchMeanAcc.isChecked
