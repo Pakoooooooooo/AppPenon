@@ -16,6 +16,8 @@ class PenonState {
     var avr_acc: Double = 0.0
     var sd_acc: Double = 0.0
     var max_acc: Double = 0.0
+    var avr_avr_mag_z: Double = 0.0
+    var avr_avr_mag_z_mem: Double = 0.0
 
     /**
      * Met à jour les propriétés à partir d'une trame brute de 15 octets (Little Endian)
@@ -66,6 +68,13 @@ class PenonState {
         this.avr_acc = buffer.short.toDouble()
         this.sd_acc = buffer.short.toDouble()
         this.max_acc = buffer.short.toDouble()
+
+        if (this.frame_cnt%10.0 != 0.0) {
+            this.avr_avr_mag_z = (abs(this.avr_avr_mag_z) + abs(this.avr_mag_z))/2
+        } else {
+            this.avr_avr_mag_z_mem = this.avr_avr_mag_z
+            this.avr_avr_mag_z = abs(this.avr_mag_z)
+        }
 
         Log.d(TAG, "✅ Frame: $frame_cnt, Type: $frame_type, Vbat: $vbat V, MagZ: $avr_mag_z mT×10⁻³")
     }
