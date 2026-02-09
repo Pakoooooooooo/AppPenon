@@ -57,7 +57,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
     private lateinit var soundAttacheLauncher: ActivityResultLauncher<Intent>
     private lateinit var soundDetacheLauncher: ActivityResultLauncher<Intent>
     private lateinit var switchAvrMagZ: SwitchCompat
-    private lateinit var switchAvrAvrMagZ: SwitchCompat
     private lateinit var switchFlowState: SwitchCompat
     private lateinit var switchSDFlowState: SwitchCompat
     private lateinit var switchMeanAcc: SwitchCompat
@@ -132,7 +131,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         penon = Penon(macAddress = macAddress)
         try {
             repository.loadPenon(penon)
-            Log.d("PenonsSettings", "Après chargement - avrMagZ: ${penon.avrMagZ}, avrAvrMagZ: ${penon.avrAvrMagZ}")
+            Log.d("PenonsSettings", "Après chargement - avrMagZ: ${penon.avrMagZ}")
         } catch (e: Exception) {
             Log.e("PenonsSettings", "Error loading penon: ${e.message}")
             Toast.makeText(this, "Erreur de chargement des données", Toast.LENGTH_SHORT).show()
@@ -188,9 +187,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         editAttachedThreshold = findViewById(R.id.edit_attached_threshold)
         editTimeline = findViewById(R.id.edit_timeline)
 
-        // ✅ CORRECTION: Associer les bons IDs
-        switchAvrMagZ = findViewById(R.id.switch_avr_mag_z)          // ID = avr_mag_z → variable avrMagZ
-        switchAvrAvrMagZ = findViewById(R.id.switch_avr_avr_mag_z)   // ID = avr_avr_mag_z → variable avrAvrMagZ         // "Mag Z"
+        switchAvrMagZ = findViewById(R.id.switch_avr_mag_z)
         switchFlowState = findViewById(R.id.switch_flow_state)
         switchSDFlowState = findViewById(R.id.switch_sd_flow_state)
         switchMeanAcc = findViewById(R.id.switch_mean_acc)
@@ -221,9 +218,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         editPenonName.setText(penon.penonName)
         editTimeline.setText(penon.timeline.toString())
 
-        // ✅ CORRECTION: Utiliser les bonnes propriétés
-        switchAvrAvrMagZ.isChecked = penon.avrAvrMagZ  // avr_avr_mag_z
-        switchAvrMagZ.isChecked = penon.avrMagZ         // avr_mag_z
+        switchAvrMagZ.isChecked = penon.avrMagZ
         switchFlowState.isChecked = penon.flowState
         switchSDFlowState.isChecked = penon.sDFlowState
         switchMeanAcc.isChecked = penon.meanAcc
@@ -306,9 +301,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
             editLabelDetache
         ).forEach { it.addTextChangedListener(textWatcher) }
 
-        // ✅ CORRECTION: Tous les switches qui existent
         listOf(
-            switchAvrAvrMagZ,
             switchAvrMagZ,
             switchFlowState,
             switchSDFlowState,
@@ -334,8 +327,6 @@ class PenonsSettingsActivity : AppCompatActivity() {
                 penonName = editPenonName.text.toString()
                 timeline = editTimeline.text.toString().toIntOrNull() ?: timeline
 
-                // ✅ CORRECTION: Mapper correctement les switches
-                avrAvrMagZ = switchAvrAvrMagZ.isChecked
                 avrMagZ = switchAvrMagZ.isChecked
                 flowState = switchFlowState.isChecked
                 sDFlowState = switchSDFlowState.isChecked
@@ -357,7 +348,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
             }
 
             Log.d("PenonsSettings", "Penon object updated, attempting to save...")
-            Log.d("PenonsSettings", "Avant sauvegarde - avrMagZ: ${penon.avrMagZ}, avrAvrMagZ: ${penon.avrAvrMagZ}")
+            Log.d("PenonsSettings", "Avant sauvegarde - avrMagZ: ${penon.avrMagZ}")
             repository.savePenon(penon)
 
             Log.d("PenonsSettings", "Repository save completed successfully")

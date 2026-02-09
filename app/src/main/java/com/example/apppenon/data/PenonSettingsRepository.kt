@@ -124,10 +124,6 @@ class PenonSettingsRepository(context: Context) {
             "${penon.macAddress}_avrMagZ",
             penon.avrMagZ
         )
-        penon.avrAvrMagZ = sharedPref.getBoolean(
-            "${penon.macAddress}_avrAvrMagZ",
-            penon.avrAvrMagZ
-        )
         penon.detached = sharedPref.getBoolean(
             "${penon.macAddress}_detached",
             penon.detached
@@ -186,7 +182,6 @@ class PenonSettingsRepository(context: Context) {
             putBoolean("${penon.macAddress}_maxAcc", penon.maxAcc)
             putBoolean("${penon.macAddress}_vbat", penon.vbat)
             putBoolean("${penon.macAddress}_avrMagZ", penon.avrMagZ)
-            putBoolean("${penon.macAddress}_avrAvrMagZ", penon.avrAvrMagZ)
             putBoolean("${penon.macAddress}_detached", penon.detached)
             putString("${penon.macAddress}_labelAttache", penon.labelAttache)
             putString("${penon.macAddress}_labelDetache", penon.labelDetache)

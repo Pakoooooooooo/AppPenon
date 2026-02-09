@@ -149,7 +149,7 @@ class MainActivity : AppCompatActivity() {
                 penonName = "Penon ${macAddress.takeLast(5)}",
                 macAddress = macAddress,
                 flowState = true,
-                editAttachedThreshold = 500,
+                editAttachedThreshold = 3500,
                 sDFlowState = true,
             )
 

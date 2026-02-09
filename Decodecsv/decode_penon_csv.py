@@ -117,8 +117,8 @@ class PenonDecoder:
 
             self.last_frame_cnt[penon_id] = frame_cnt
 
-            # Déterminer l'état attaché/détaché (threshold par défaut: 500)
-            is_attached = flow_state >= 500
+            # Déterminer l'état attaché/détaché (threshold par défaut: 3500)
+            is_attached = flow_state >= 3500
 
             return {
                 'frame_count': frame_cnt,

@@ -16,8 +16,6 @@ class PenonState {
     var avr_acc: Double = 0.0
     var sd_acc: Double = 0.0
     var max_acc: Double = 0.0
-    var avr_avr_mag_z: Double = 0.0
-    var avr_avr_mag_z_mem: Double = 0.0
 
     /**
      * Met à jour les propriétés à partir d'une trame brute de 15 octets (Little Endian)
@@ -33,7 +31,7 @@ class PenonState {
 
         var startPos = -1
         for (i in 0 until rawData.size - 1) {
-            if (rawData[i] == 0x15.toByte() && rawData[i + 1] == 0xff.toByte()) {
+            if (rawData[i + 1] == 0xff.toByte()) {
                 startPos = i + 2
                 break
             }
@@ -52,8 +50,11 @@ class PenonState {
         // uint8_t
         this.frame_type = buffer.get().toInt() and 0xFF
 
-        // int16_t - Voltage en mV, convertir en V
-        this.vbat = buffer.short.toDouble() / 1000.0
+        // padding (alignement struct C)
+        buffer.get()
+
+        // int16_t - Voltage en cV, convertir en V
+        this.vbat = buffer.short.toDouble() / 100.0
 
         // int16_t - Déjà en mT×10⁻³ selon la doc
         this.avr_mag_z = buffer.short.toDouble()
@@ -66,16 +67,10 @@ class PenonState {
         this.sd_acc = buffer.short.toDouble()
         this.max_acc = buffer.short.toDouble()
 
-        if (this.frame_cnt%10.0 != 0.0) {
-            this.avr_avr_mag_z = (abs(this.avr_avr_mag_z) + abs(this.avr_mag_z))/2
-        } else {
-            this.avr_avr_mag_z_mem = this.avr_avr_mag_z
-            this.avr_avr_mag_z = abs(this.avr_mag_z)
-        }
-
         Log.d(TAG, "✅ Frame: $frame_cnt, Type: $frame_type, Vbat: $vbat V, MagZ: $avr_mag_z mT×10⁻³")
     }
+
     fun getFlowState(): Double {
-        return this.avr_avr_mag_z_mem
+        return abs(this.avr_mag_z)
     }
 }
