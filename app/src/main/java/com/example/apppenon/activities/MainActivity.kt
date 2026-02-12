@@ -201,6 +201,9 @@ class MainActivity : AppCompatActivity() {
         if (!SimulationConfig.isSimulationMode) {
             ensureSimulationStopped()
         }
+        if (wasScanning) {
+            PR.startScanning()
+        }
     }
 
     private fun initializeViews() {
