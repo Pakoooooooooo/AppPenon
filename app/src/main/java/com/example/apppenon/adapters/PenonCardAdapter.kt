@@ -55,7 +55,7 @@ class PenonCardAdapter (
             print += "Vbat: ${penon.state.vbat} V\n"
         }
         if (settings?.avrMagZ == true) {
-            print += "MagZ: ${penon.state.avr_mag_z.toInt()} mT×10⁻³\n"
+            print += "MagZ: ${penon.state.avr_mag_z[0].toInt()} mT×10⁻³\n"
         }
         if (settings?.avrAvrMagZ == true) {
             print += "AvrMagZ: ${penon.state.avr_avr_mag_z.toInt()} mT×10⁻³\n"
@@ -72,7 +72,7 @@ class PenonCardAdapter (
 
         // 3. Logique d'attachement (Calculée avec le nouveau seuil)
         val mathDone = penon.state.frame_cnt > 10
-        val isAttached = abs(penon.state.getFlowState()) >= threshold
+        val isAttached = abs(penon.state.avr_avr_mag_z) >= threshold
 
         // 🔊 Détecter les changements d'état et annoncer (vocal ou son)
         if (settings != null) {

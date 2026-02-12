@@ -48,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var uiStateManager: UIStateManager
     private lateinit var repository: PenonSettingsRepository
     private lateinit var voiceNotificationManager: VoiceNotificationManager
+    private var wasScanning: Boolean = false
 
     // ✅ ÉTAPE 1 : Déclarer le launcher au niveau de la classe
     private lateinit var penonSettingsLauncher: ActivityResultLauncher<Intent>
@@ -121,6 +122,12 @@ class MainActivity : AppCompatActivity() {
         setupButtonListeners()
         uiStateManager.updateUIState(PR)
         observeSettingsChanges()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        wasScanning = PR.isScanning
+        PR.stopScanning()
     }
 
     private fun loadKnownPenons() {
