@@ -79,7 +79,7 @@ class PenonCardAdapter (
             val previousState = settings.lastAttachedState
             if (previousState != null && previousState != isAttached) {
                 // L'état a changé, annoncer (vocal ou son selon la config)
-                voiceNotificationManager?.announceStateChange(
+                voiceNotificationManager?.bufferStateChange(
                     penonName = settings.penonName,
                     isAttached = isAttached,
                     useSound = settings.useSound,

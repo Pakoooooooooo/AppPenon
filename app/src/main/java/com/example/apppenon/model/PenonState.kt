@@ -17,7 +17,11 @@ class PenonState {
     var sd_acc: Double = 0.0
     var max_acc: Double = 0.0
     var avr_avr_mag_z: Double = 0.0
-    var avr_avr_mag_z_mem: Double = 0.0
+    private val magZWindow = ArrayDeque<Double>(WINDOW_SIZE)
+
+    companion object {
+        private const val WINDOW_SIZE = 10
+    }
 
     /**
      * Met à jour les propriétés à partir d'une trame brute de 15 octets (Little Endian)
@@ -69,17 +73,17 @@ class PenonState {
         this.sd_acc = buffer.short.toDouble()
         this.max_acc = buffer.short.toDouble()
 
-        if (this.frame_cnt%10.0 != 0.0) {
-            this.avr_avr_mag_z = (abs(this.avr_avr_mag_z) + abs(this.avr_mag_z))/2
-        } else {
-            this.avr_avr_mag_z_mem = this.avr_avr_mag_z
-            this.avr_avr_mag_z = abs(this.avr_mag_z)
+        // Moyenne glissante sur les WINDOW_SIZE dernières valeurs
+        magZWindow.addLast(abs(this.avr_mag_z))
+        if (magZWindow.size > WINDOW_SIZE) {
+            magZWindow.removeFirst()
         }
+        this.avr_avr_mag_z = magZWindow.average()
 
         Log.d(TAG, "✅ Frame: $frame_cnt, Type: $frame_type, Vbat: $vbat V, MagZ: $avr_mag_z mT×10⁻³")
     }
 
     fun getFlowState(): Double {
-        return abs(this.avr_mag_z)
+        return abs(this.avr_avr_mag_z)
     }
 }

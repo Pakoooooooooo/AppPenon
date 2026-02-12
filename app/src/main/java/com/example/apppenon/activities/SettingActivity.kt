@@ -1,9 +1,11 @@
 package com.example.apppenon.activities
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,7 +24,8 @@ class SettingActivity : AppCompatActivity() {
     lateinit var modeBtn: Button
     lateinit var backBtn: Button
     lateinit var recSwitch: SwitchCompat
-    
+    lateinit var editMuteTime: EditText
+
     // 🆕 Nouveaux éléments pour la simulation
     lateinit var simulationSwitch: SwitchCompat
     lateinit var btnSelectCSV: Button
@@ -77,6 +80,13 @@ class SettingActivity : AppCompatActivity() {
         simulationSwitch = findViewById(R.id.switch_simulation)
         btnSelectCSV = findViewById(R.id.btn_select_csv)
         tvSelectedFile = findViewById(R.id.tv_selected_file)
+
+        editMuteTime = findViewById(R.id.edit_mute_time)
+
+        // Charger le mute time depuis SharedPreferences
+        val globalPrefs = getSharedPreferences("global_settings", Context.MODE_PRIVATE)
+        AppData.muteTimeSeconds = globalPrefs.getInt("mute_time_seconds", 0)
+        editMuteTime.setText(AppData.muteTimeSeconds.toString())
 
         // Charger l'état actuel
         modeBtn.text = AppData.modes[AppData.mode]
@@ -133,6 +143,15 @@ class SettingActivity : AppCompatActivity() {
         
         // État initial du bouton
         btnSelectCSV.isEnabled = SimulationConfig.isSimulationMode
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Sauvegarder le mute time
+        val muteTime = editMuteTime.text.toString().toIntOrNull() ?: 0
+        AppData.muteTimeSeconds = muteTime
+        getSharedPreferences("global_settings", Context.MODE_PRIVATE)
+            .edit().putInt("mute_time_seconds", muteTime).apply()
     }
 
     /**

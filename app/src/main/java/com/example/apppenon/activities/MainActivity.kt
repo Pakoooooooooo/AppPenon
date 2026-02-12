@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.UIStateManager
+import com.example.apppenon.model.AppData
 import com.example.apppenon.model.Penon
 import com.example.apppenon.model.PenonReader
 import com.example.apppenon.adapters.PenonCardAdapter
@@ -85,6 +86,10 @@ class MainActivity : AppCompatActivity() {
 
         repository = PenonSettingsRepository(this)
         voiceNotificationManager = VoiceNotificationManager(this)
+
+        // Charger le mute time global
+        val globalPrefs = getSharedPreferences("global_settings", MODE_PRIVATE)
+        AppData.muteTimeSeconds = globalPrefs.getInt("mute_time_seconds", 0)
 
         // 🆕 Initialiser le simulateur
         csvSimulator = CSVSimulator(this, PR.bleScanManager)
