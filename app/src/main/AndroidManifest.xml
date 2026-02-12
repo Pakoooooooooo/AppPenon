@@ -60,6 +60,12 @@
             android:exported="true"
             tools:ignore="DiscouragedApi">
         </activity>
+        <activity
+            android:name=".activities.PenonsCalibrationActivity"
+            android:screenOrientation="portrait"
+            android:exported="true"
+            tools:ignore="DiscouragedApi">
+        </activity>
     </application>
 
 </manifest>

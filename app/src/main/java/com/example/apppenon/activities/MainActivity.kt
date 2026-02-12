@@ -60,9 +60,16 @@ class MainActivity : AppCompatActivity() {
 
     val deviceList = mutableListOf<Penon>()
 
+    companion object {
+        @SuppressLint("StaticFieldLeak")
+        private var instance: MainActivity? = null
+        fun getInstance(): MainActivity? = instance
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.Theme_AppPenon)
         super.onCreate(savedInstanceState)
+        instance = this
         setContentView(R.layout.activity_main)
 
         // ✅ ÉTAPE 2 : Enregistrer le launcher IMMÉDIATEMENT dans onCreate
@@ -361,6 +368,7 @@ class MainActivity : AppCompatActivity() {
             PR.stopScanning()
             PR.closeCSVFiles()
             voiceNotificationManager.release()
+            instance = null
         } catch (e: Exception) {
             Log.e("MainActivity", "Erreur lors du nettoyage: ${e.message}", e)
         }

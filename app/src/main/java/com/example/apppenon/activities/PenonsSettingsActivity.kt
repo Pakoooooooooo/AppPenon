@@ -64,14 +64,34 @@ class PenonsSettingsActivity : AppCompatActivity() {
     private lateinit var switchSDAcc: SwitchCompat
     private lateinit var switchMaxAcc: SwitchCompat
     private lateinit var switchVbat: SwitchCompat
+    private lateinit var btnCalibration: Button
 
+    // Créer le launcher pour recevoir le résultat
+    private val calibrationLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val calibrationResult = result.data?.getIntExtra("calibration_result", -1)
+            // Utilisez le résultat ici
+            editAttachedThreshold.setText(calibrationResult.toString())
+
+            // Exemple : afficher le résultat
+            Toast.makeText(this, "Calibration: $calibrationResult", Toast.LENGTH_SHORT).show()
+        } else if (result.resultCode == RESULT_CANCELED) {
+            // L'utilisateur a annulé
+            Toast.makeText(this, "Calibration annulée", Toast.LENGTH_SHORT).show()
+        }
+    }
     companion object {
         private var currentActivity: WeakReference<PenonsSettingsActivity>? = null
-
+        @SuppressLint("StaticFieldLeak")
+        private var instance: PenonsSettingsActivity? = null
+        fun getInstance(): PenonsSettingsActivity? = instance
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        instance = this
 
         // Initialiser les launchers pour sélectionner les fichiers audio
         soundAttacheLauncher = registerForActivityResult(
@@ -162,6 +182,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        instance = null
         voiceNotificationManager.release()
         Log.d("PenonsSettings", "🛑 onDestroy: Ressources libérées")
     }
@@ -212,6 +233,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         btnDelete = findViewById(R.id.btn_delete)
         btnSave = findViewById(R.id.btn_save)
         btnCancel = findViewById(R.id.btn_cancel)
+        btnCalibration = findViewById(R.id.btn_calibration)
     }
 
     @SuppressLint("SetTextI18n")
@@ -266,6 +288,13 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
         btnSave.setOnClickListener { saveSettings() }
         btnDelete.setOnClickListener { showDeleteConfirmationDialog() }
+
+        // Modifier le bouton pour utiliser le launcher
+        btnCalibration.setOnClickListener {
+            val intent = Intent(this, PenonsCalibrationActivity::class.java)
+            intent.putExtra("penon_mac_address", penon.macAddress)
+            calibrationLauncher.launch(intent)
+        }
 
         // Listeners pour les sons personnalisés
         switchUseSound.setOnCheckedChangeListener { _, isChecked ->
@@ -461,5 +490,9 @@ class PenonsSettingsActivity : AppCompatActivity() {
             Log.e("PenonsSettings", "Error getting file name: ${e.message}")
         }
         return fileName
+    }
+
+    fun upDateThreshold(newValue: Int){
+        this.editAttachedThreshold.setText(newValue.toString())
     }
 }
