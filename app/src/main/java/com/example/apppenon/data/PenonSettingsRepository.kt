@@ -178,6 +178,7 @@ class PenonSettingsRepository(context: Context) {
 
         sharedPref.edit().apply {
             putString("${penon.macAddress}_penonName", penon.penonName)
+            putInt("${penon.macAddress}_editAttachedThreshold", penon.editAttachedThreshold)
             putInt("${penon.macAddress}_timeline", penon.timeline)
             putBoolean("${penon.macAddress}_flowState", penon.flowState)
             putBoolean("${penon.macAddress}_sDFlowState", penon.sDFlowState)

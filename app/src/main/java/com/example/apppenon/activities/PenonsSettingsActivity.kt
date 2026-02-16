@@ -221,6 +221,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
         editDetached = findViewById(R.id.edit_detached)
         editLabelAttache = findViewById(R.id.edit_label_attache)
         editLabelDetache = findViewById(R.id.edit_label_detache)
+        editTimeline = findViewById(R.id.edit_timeline)
         switchUseSound = findViewById(R.id.switch_use_sound)
         layoutVoiceLabels = findViewById(R.id.layout_voice_labels)
         layoutCustomSounds = findViewById(R.id.layout_custom_sounds)
@@ -266,7 +267,7 @@ class PenonsSettingsActivity : AppCompatActivity() {
 
         switchCount.isChecked = penon.count
         switchIDs.isChecked = penon.ids
-        editAttachedThreshold.hint = penon.editAttachedThreshold.toString()
+        editAttachedThreshold.setText(penon.editAttachedThreshold.toString())
     }
 
     private fun setupListeners() {
