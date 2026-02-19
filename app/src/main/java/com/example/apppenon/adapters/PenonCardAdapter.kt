@@ -12,14 +12,14 @@ import com.example.apppenon.model.Penon
 import com.example.apppenon.utils.VoiceNotificationManager
 import kotlin.math.abs
 
-class PenonCardAdapter (
+class PenonCardAdapter(
     private val onPenonClick: ((Penon) -> Unit)? = null,
+    // ✅ Une seule liste — elle sert à la fois de source d'affichage ET de settings
     private val penonSettings: MutableList<Penon> = mutableListOf(),
     private val voiceNotificationManager: VoiceNotificationManager? = null
 ) : RecyclerView.Adapter<PenonCardAdapter.PenonViewHolder>() {
 
-    private val penonList = mutableListOf<Penon>()
-
+    // ✅ Suppression de penonList : on affiche directement penonSettings
     class PenonViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvPenonName: TextView = view.findViewById(R.id.tvPenonName)
         val tvMacAddress: TextView = view.findViewById(R.id.tvMacAddress)
@@ -35,63 +35,38 @@ class PenonCardAdapter (
 
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: PenonViewHolder, position: Int) {
-        val penon = penonList[position]
+        val penon = penonSettings[position]
+        val threshold = penon.editAttachedThreshold
 
-        // 1. Récupérer les réglages mis à jour
-        // IMPORTANT : penonSettings DOIT être la liste mise à jour depuis MainActivity
-        val settings = penonSettings.find { it.macAddress == penon.macAddress }
-
-        val nameToDisplay = settings?.penonName ?: penon.penonName
-        val threshold = settings?.editAttachedThreshold ?: 3500
-
-        // 2. Mise à jour des textes en fonction des paramètres de chaque penon
-        holder.tvPenonName.text = nameToDisplay
+        holder.tvPenonName.text = penon.penonName
         holder.tvMacAddress.text = "MAC: ${penon.macAddress}"
+
         var print = ""
-        if (settings?.count == true) {
-            print += "Frame: ${penon.state.frame_cnt}\n"
-        }
-        if (settings?.vbat == true) {
-            print += "Vbat: ${penon.state.vbat} V\n"
-        }
-        if (settings?.avrMagZ == true) {
-            print += "MagZ: ${penon.state.avr_mag_z[0].toInt()} mT×10⁻³\n"
-        }
-        if (settings?.avrAvrMagZ == true) {
-            print += "AvrMagZ: ${penon.state.avr_avr_mag_z.toInt()} mT×10⁻³\n"
-        }
-        if (settings?.meanAcc == true) {
-            print += "AvrAcc: ${penon.state.avr_acc.toInt()} m.s⁻²×10⁻³\n"
-        }
-        if (settings?.maxAcc == true) {
-            print += "MaxAcc: ${penon.state.max_acc.toInt()} m.s⁻²×10⁻³\n"
-        }
+        if (penon.count == true) print += "Frame: ${penon.state.frame_cnt}\n"
+        if (penon.vbat == true) print += "Vbat: ${penon.state.vbat} V\n"
+        if (penon.avrMagZ == true) print += "MagZ: ${penon.state.avr_mag_z.toInt()} mT×10⁻³\n"
+        if (penon.avrAvrMagZ == true) print += "AvrMagZ: ${penon.state.avr_avr_mag_z.toInt()} mT×10⁻³\n"
+        if (penon.meanAcc == true) print += "AvrAcc: ${penon.state.avr_acc.toInt()} m.s⁻²×10⁻³\n"
+        if (penon.maxAcc == true) print += "MaxAcc: ${penon.state.max_acc.toInt()} m.s⁻²×10⁻³\n"
         holder.tvData.text = print
 
-        // ... (votre code RSSI et Batterie est correct)
-
-        // 3. Logique d'attachement (Calculée avec le nouveau seuil)
         val mathDone = penon.state.frame_cnt > 10
         val isAttached = abs(penon.state.avr_avr_mag_z) >= threshold
 
-        // 🔊 Détecter les changements d'état et annoncer (vocal ou son)
-        if (settings != null) {
-            val previousState = settings.lastAttachedState
-            if (previousState != null && previousState != isAttached) {
-                // L'état a changé, annoncer (vocal ou son selon la config)
-                voiceNotificationManager?.bufferStateChange(
-                    penonName = settings.penonName,
-                    isAttached = isAttached,
-                    useSound = settings.useSound,
-                    soundAttachePath = settings.soundAttachePath,
-                    soundDetachePath = settings.soundDetachePath,
-                    labelAttache = settings.labelAttache,
-                    labelDetache = settings.labelDetache
-                )
-            }
-            // Mettre à jour l'état précédent
-            settings.lastAttachedState = isAttached
+        // 🔊 Détecter les changements d'état
+        val previousState = penon.lastAttachedState
+        if (previousState != null && previousState != isAttached) {
+            voiceNotificationManager?.bufferStateChange(
+                penonName = penon.penonName,
+                isAttached = isAttached,
+                useSound = penon.useSound,
+                soundAttachePath = penon.soundAttachePath,
+                soundDetachePath = penon.soundDetachePath,
+                labelAttache = penon.labelAttache,
+                labelDetache = penon.labelDetache
+            )
         }
+        penon.lastAttachedState = isAttached
 
         holder.tvAttachedStatus.apply {
             if (mathDone) {
@@ -103,31 +78,31 @@ class PenonCardAdapter (
             }
         }
 
-        // 4. Click listener
         holder.itemView.setOnClickListener {
-            // On passe l'objet de données détectées
             onPenonClick?.invoke(penon)
         }
     }
 
-    override fun getItemCount() = penonList.size
+    override fun getItemCount() = penonSettings.size
 
     fun updatePenon(macAddress: String, rawHexData: ByteArray, bleScanManager: BLEScanManager) {
-        val index = penonList.indexOfFirst { it.macAddress == macAddress }
+        val index = penonSettings.indexOfFirst { it.macAddress == macAddress }
         if (index != -1) {
-            penonList[index].state.updateFromRawData(rawHexData)
+            // ✅ Le Penon existe déjà (chargé depuis MainActivity) : on met à jour son state
+            penonSettings[index].state.updateFromRawData(rawHexData)
             notifyItemChanged(index)
         } else if (rawHexData.isNotEmpty() && bleScanManager.isLadeSEBeacon(rawHexData)) {
+            // ✅ Nouveau Penon découvert via BLE : on l'ajoute
             val penon = Penon(macAddress = macAddress)
             penon.state.updateFromRawData(rawHexData)
-            penonList.add(penon)
-            notifyItemInserted(penonList.size - 1)
+            penonSettings.add(penon)
+            notifyItemInserted(penonSettings.size - 1)
         }
     }
 
     fun clearAll() {
-        val size = penonList.size
-        penonList.clear()
+        val size = penonSettings.size
+        penonSettings.clear()
         notifyItemRangeRemoved(0, size)
     }
 }

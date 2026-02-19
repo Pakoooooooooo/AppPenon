@@ -378,4 +378,13 @@ class MainActivity : AppCompatActivity() {
             Log.e("MainActivity", "Erreur lors du nettoyage: ${e.message}", e)
         }
     }
+
+    // Dans MainActivity.kt
+    fun getPenonByMac(macAddress: String): Penon? {
+        // Adaptez selon votre structure de données
+        // Par exemple si vous avez une liste de Penons:
+        return deviceList.find { it.macAddress == macAddress }
+
+        // Ou si vous utilisez une autre structure, adaptez en conséquence
+    }
 }

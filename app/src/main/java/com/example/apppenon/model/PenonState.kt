@@ -8,17 +8,16 @@ import kotlin.math.abs
 class PenonState {
     // Variables contenant les données reçues par bluetooth
     private val TAG = "PenonState"
-    var frame_cnt: Long = 0
+    var frame_cnt: Int = 0
     var frame_type: Int = 0
     var vbat: Double = 0.0
+    var avr_mag_z: Double = 0.0
     var sd_mag_z: Double = 0.0
     var avr_acc: Double = 0.0
     var sd_acc: Double = 0.0
     var max_acc: Double = 0.0
-    var time: Int = 10
-    var avr_mag_z: MutableList<Double> = mutableListOf()
     var avr_avr_mag_z: Double = 0.0
-    private val magZWindow = ArrayDeque<Double>(WINDOW_SIZE)
+    val magZWindow = ArrayDeque<Double>(WINDOW_SIZE)
 
     companion object {
         private const val WINDOW_SIZE = 10
@@ -52,7 +51,7 @@ class PenonState {
         buffer.position(startPos)
 
         // uint32_t
-        this.frame_cnt = buffer.int.toLong() and 0xFFFFFFFFL
+        this.frame_cnt = buffer.int
 
         // uint8_t
         this.frame_type = buffer.get().toInt() and 0xFF
@@ -64,7 +63,7 @@ class PenonState {
         this.vbat = buffer.short.toDouble() / 100.0
 
         // int16_t - Déjà en mT×10⁻³ selon la doc
-        this.avr_mag_z.add(buffer.short.toDouble())
+        this.avr_mag_z = buffer.short.toDouble()
 
         // int16_t
         this.sd_mag_z = buffer.short.toDouble()
@@ -86,5 +85,8 @@ class PenonState {
 
     fun getFlowState(): Double {
         return abs(this.avr_avr_mag_z)
+    }
+    fun getFrameCount(): Int {
+        return this.frame_cnt
     }
 }
