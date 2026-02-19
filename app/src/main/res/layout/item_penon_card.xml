@@ -31,18 +31,10 @@
                 android:textColor="@color/sea" />
 
             <TextView
-                android:id="@+id/tvRssi"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📶 -60 dBm"
-                android:textSize="12sp"
-                android:layout_marginEnd="8dp" />
-
-            <TextView
                 android:id="@+id/tvBattery"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔋 3.7V"
+                android:text="🔋 ??V"
                 android:textSize="12sp" />
         </LinearLayout>
 

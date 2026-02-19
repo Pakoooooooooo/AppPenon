@@ -24,6 +24,7 @@ class PenonCardAdapter(
         val tvPenonName: TextView = view.findViewById(R.id.tvPenonName)
         val tvMacAddress: TextView = view.findViewById(R.id.tvMacAddress)
         val tvAttachedStatus: TextView = view.findViewById(R.id.tvAttachedStatus)
+        val tvBattery: TextView = view.findViewById(R.id.tvBattery)
         val tvData: TextView = view.findViewById(R.id.tvData)
     }
 
@@ -49,6 +50,8 @@ class PenonCardAdapter(
         if (penon.meanAcc == true) print += "AvrAcc: ${penon.state.avr_acc.toInt()} m.s⁻²×10⁻³\n"
         if (penon.maxAcc == true) print += "MaxAcc: ${penon.state.max_acc.toInt()} m.s⁻²×10⁻³\n"
         holder.tvData.text = print
+
+        holder.tvBattery.text = "\uD83D\uDD0B ${penon.state.vbat} V"
 
         val mathDone = penon.state.frame_cnt > 10
         val isAttached = abs(penon.state.avr_avr_mag_z) >= threshold
