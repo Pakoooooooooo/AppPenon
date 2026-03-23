@@ -24,6 +24,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:text="←"
+                android:paddingTop="-150dp"
                 android:textSize="24sp" />
 
             <TextView
@@ -46,7 +47,8 @@
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="#00897B"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="8dp"
+            android:visibility = "gone"/>
 
         <Button
             android:id="@+id/modeBtn"
@@ -55,7 +57,8 @@
             android:text="Standard"
             android:textColor="@android:color/white"
             android:padding="12dp"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="24dp"
+            android:visibility = "gone"/>
 
         <!-- Section Enregistrement -->
         <TextView
@@ -65,7 +68,8 @@
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="#00897B"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="8dp"
+            android:visibility = "gone"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -74,7 +78,8 @@
             android:gravity="center_vertical"
             android:background="@android:color/white"
             android:padding="12dp"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="24dp"
+            android:visibility = "gone">
 
             <TextView
                 android:layout_width="0dp"

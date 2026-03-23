@@ -53,7 +53,6 @@ class PenonCardAdapter(
 
         holder.tvBattery.text = "\uD83D\uDD0B ${penon.state.vbat} V"
 
-        val mathDone = penon.state.frame_cnt > 10
         val isAttached = abs(penon.state.avr_avr_mag_z) >= threshold
 
         // 🔊 Détecter les changements d'état
@@ -72,13 +71,8 @@ class PenonCardAdapter(
         penon.lastAttachedState = isAttached
 
         holder.tvAttachedStatus.apply {
-            if (mathDone) {
-                text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"
-                setTextColor(if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt())
-            } else {
-                text = "⏳ WAITING FOR DATA"
-                setTextColor(0xFF00BCD4.toInt())
-            }
+            text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"
+            setTextColor(if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt())
         }
 
         holder.itemView.setOnClickListener {

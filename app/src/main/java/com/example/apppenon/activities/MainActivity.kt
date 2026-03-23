@@ -134,6 +134,7 @@ class MainActivity : AppCompatActivity() {
         setupButtonListeners()
         uiStateManager.updateUIState(PR)
         observeSettingsChanges()
+        updateColor("stop")
     }
 
     override fun onPause() {
@@ -243,7 +244,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startRealBLEScan()
             }
-            updateColor()
+            updateColor("start")
         }
 
         // 🆕 Arrêter le scan (BLE ou Simulation)
@@ -266,7 +267,7 @@ class MainActivity : AppCompatActivity() {
                 stopRealBLEScan()
                 btnStopScan.text = "⏹️ Arrêter"
             }
-            updateColor()
+            updateColor("stop")
         }
 
         btnClearData.setOnClickListener {
@@ -278,7 +279,7 @@ class MainActivity : AppCompatActivity() {
                 tvStatus.text = "En attente..."
             }
 
-            updateColor()
+            updateColor("clear")
         }
 
         // 🆕 Bouton Paramètres globaux (Simulation)
@@ -342,26 +343,39 @@ class MainActivity : AppCompatActivity() {
         PR.stopScanning()
     }
 
-    fun updateColor(){
+    fun updateColor(btn: String){
         // Change la couleur des boutons en fonction de l'état actuel
-        if (btnStartScan.isEnabled) {
+        if (btn == "start") {
             btnStartScan.setBackgroundColor(resources.getColor(R.color.grey))
             btnStartScan.setTextColor(resources.getColor(R.color.white))
             btnStartScan.isEnabled = false
-        } else {
-            btnStartScan.setBackgroundColor(resources.getColor(R.color.sea))
-            btnStartScan.setTextColor(resources.getColor(R.color.white))
-            btnStartScan.isEnabled = true
-        }
-        if (btnStopScan.isEnabled) {
-            btnStopScan.setBackgroundColor(resources.getColor(R.color.grey))
-            btnStopScan.setTextColor(resources.getColor(R.color.white))
-            btnStopScan.isEnabled = false
-        }
-        else {
             btnStopScan.setBackgroundColor(resources.getColor(R.color.sea))
             btnStopScan.setTextColor(resources.getColor(R.color.white))
             btnStopScan.isEnabled = true
+            btnClearData.setBackgroundColor(resources.getColor(R.color.grey))
+            btnClearData.setTextColor(resources.getColor(R.color.white))
+            btnClearData.isEnabled = false
+        } else if (btn == "stop") {
+            btnStopScan.setBackgroundColor(resources.getColor(R.color.grey))
+            btnStopScan.setTextColor(resources.getColor(R.color.white))
+            btnStopScan.isEnabled = false
+            btnStartScan.setBackgroundColor(resources.getColor(R.color.sea))
+            btnStartScan.setTextColor(resources.getColor(R.color.white))
+            btnStartScan.isEnabled = true
+            btnClearData.setBackgroundColor(resources.getColor(R.color.sea))
+            btnClearData.setTextColor(resources.getColor(R.color.white))
+            btnClearData.isEnabled = true
+        }
+        if (btn == "clear") {
+            btnStopScan.setBackgroundColor(resources.getColor(R.color.grey))
+            btnStopScan.setTextColor(resources.getColor(R.color.white))
+            btnStopScan.isEnabled = false
+            btnStartScan.setBackgroundColor(resources.getColor(R.color.sea))
+            btnStartScan.setTextColor(resources.getColor(R.color.white))
+            btnStartScan.isEnabled = true
+            btnClearData.setBackgroundColor(resources.getColor(R.color.grey))
+            btnClearData.setTextColor(resources.getColor(R.color.white))
+            btnClearData.isEnabled = false
         }
     }
 
