@@ -23,17 +23,5 @@ data class Penon (
     var avrMagZ: Boolean = true,
     var avrAvrMagZ: Boolean = true,
 
-    // Labels personnalisés pour les annonces vocales
-    var labelAttache: String = "attaché",
-    var labelDetache: String = "détaché",
-
-    // Configuration des annonces (vocal ou son)
-    var useSound: Boolean = false, // true = son, false = vocal
-    var soundAttachePath: String = "", // Chemin vers le fichier son pour "attaché"
-    var soundDetachePath: String = "", // Chemin vers le fichier son pour "détaché"
-
-    // État du Penon pour les notifications vocales
-    @Transient var lastAttachedState: Boolean? = null,
-
     var state: PenonState = PenonState()
 ): Serializable

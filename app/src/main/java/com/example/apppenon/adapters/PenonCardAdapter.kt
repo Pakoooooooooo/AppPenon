@@ -55,21 +55,6 @@ class PenonCardAdapter(
 
         val isAttached = abs(penon.state.avr_avr_mag_z) >= threshold
 
-        // 🔊 Détecter les changements d'état
-        val previousState = penon.lastAttachedState
-        if (previousState != null && previousState != isAttached) {
-            voiceNotificationManager?.bufferStateChange(
-                penonName = penon.penonName,
-                isAttached = isAttached,
-                useSound = penon.useSound,
-                soundAttachePath = penon.soundAttachePath,
-                soundDetachePath = penon.soundDetachePath,
-                labelAttache = penon.labelAttache,
-                labelDetache = penon.labelDetache
-            )
-        }
-        penon.lastAttachedState = isAttached
-
         holder.tvAttachedStatus.apply {
             text = if (isAttached) "🔗 ATTACHÉ" else "❌ DÉTACHÉ"
             setTextColor(if (isAttached) 0xFF4CAF50.toInt() else 0xFFE91E63.toInt())

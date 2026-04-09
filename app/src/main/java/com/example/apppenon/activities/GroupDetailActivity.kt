@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.R
 import com.example.apppenon.adapters.GroupPenonAdapter
 import com.example.apppenon.data.GroupRepository
+import com.example.apppenon.data.PenonSettingsRepository
 import com.example.apppenon.model.PenonGroup
 
 /**
@@ -27,6 +28,7 @@ class GroupDetailActivity : AppCompatActivity() {
     private lateinit var btnEdit: Button
 
     private lateinit var groupRepository: GroupRepository
+    private lateinit var penonRepository: PenonSettingsRepository
     private var groupId: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,6 +37,7 @@ class GroupDetailActivity : AppCompatActivity() {
 
         groupId = intent.getStringExtra("group_id") ?: run { finish(); return }
         groupRepository = GroupRepository(this)
+        penonRepository = PenonSettingsRepository(this)
 
         tvGroupName = findViewById(R.id.tvGroupDetailName)
         tvGroupState = findViewById(R.id.tvGroupDetailState)
@@ -56,6 +59,10 @@ class GroupDetailActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Recharger les paramètres à jour depuis SharedPreferences avant d'afficher
+        MainActivity.getInstance()?.deviceList?.forEach { penon ->
+            penonRepository.loadPenon(penon)
+        }
         refreshUI()
     }
 

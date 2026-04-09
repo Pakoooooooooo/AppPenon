@@ -1,11 +1,18 @@
 package com.example.apppenon.activities
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
+import android.util.Log
 import android.view.View
 import android.widget.*
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import com.example.apppenon.R
 import com.example.apppenon.data.GroupRepository
 import com.example.apppenon.data.PenonSettingsRepository
@@ -34,14 +41,73 @@ class GroupSettingsActivity : AppCompatActivity() {
     private lateinit var layoutAvailablePenons: LinearLayout
     private lateinit var tvAvailableTitle: TextView
 
+    // Annonces
+    private lateinit var switchGroupUseSound: SwitchCompat
+    private lateinit var switchAnnounceAttached: SwitchCompat
+    private lateinit var layoutGroupVoiceLabels: LinearLayout
+    private lateinit var layoutGroupCustomSounds: LinearLayout
+    private lateinit var editGroupLabelAttached: EditText
+    private lateinit var editGroupLabelDetached: EditText
+    private lateinit var editGroupLabelDetachedBabord: EditText
+    private lateinit var editGroupLabelDetachedTribord: EditText
+    private lateinit var tvSoundAttachedStatus: TextView
+    private lateinit var tvSoundDetachedStatus: TextView
+    private lateinit var tvSoundDetachedBabordStatus: TextView
+    private lateinit var tvSoundDetachedTribordStatus: TextView
+    private lateinit var btnSelectSoundAttached: Button
+    private lateinit var btnSelectSoundDetached: Button
+    private lateinit var btnSelectSoundDetachedBabord: Button
+    private lateinit var btnSelectSoundDetachedTribord: Button
+
+    private lateinit var soundAttachedLauncher: ActivityResultLauncher<Intent>
+    private lateinit var soundDetachedLauncher: ActivityResultLauncher<Intent>
+    private lateinit var soundDetachedBabordLauncher: ActivityResultLauncher<Intent>
+    private lateinit var soundDetachedTribordLauncher: ActivityResultLauncher<Intent>
+
     private lateinit var groupRepository: GroupRepository
     private lateinit var penonRepository: PenonSettingsRepository
 
     private var groupId: String? = null
     private var isCreateMode: Boolean = false
+    // Stocke les chemins sons en cours d'édition (mis à jour par les launchers)
+    private var soundAttachedPath: String = ""
+    private var soundDetachedPath: String = ""
+    private var soundDetachedBabordPath: String = ""
+    private var soundDetachedTribordPath: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Enregistrer les launchers avant setContentView
+        soundAttachedLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) result.data?.data?.let { uri ->
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                soundAttachedPath = uri.toString()
+                tvSoundAttachedStatus.text = getFileName(uri)
+            }
+        }
+        soundDetachedLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) result.data?.data?.let { uri ->
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                soundDetachedPath = uri.toString()
+                tvSoundDetachedStatus.text = getFileName(uri)
+            }
+        }
+        soundDetachedBabordLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) result.data?.data?.let { uri ->
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                soundDetachedBabordPath = uri.toString()
+                tvSoundDetachedBabordStatus.text = getFileName(uri)
+            }
+        }
+        soundDetachedTribordLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) result.data?.data?.let { uri ->
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                soundDetachedTribordPath = uri.toString()
+                tvSoundDetachedTribordStatus.text = getFileName(uri)
+            }
+        }
+
         setContentView(R.layout.activity_group_settings)
 
         groupRepository = GroupRepository(this)
@@ -59,20 +125,101 @@ class GroupSettingsActivity : AppCompatActivity() {
         layoutAvailablePenons = findViewById(R.id.layoutAvailablePenons)
         tvAvailableTitle = findViewById(R.id.tvAvailableTitle)
 
+        // Annonces
+        switchGroupUseSound = findViewById(R.id.switchGroupUseSound)
+        switchAnnounceAttached = findViewById(R.id.switchAnnounceAttached)
+        layoutGroupVoiceLabels = findViewById(R.id.layoutGroupVoiceLabels)
+
+        layoutGroupCustomSounds = findViewById(R.id.layoutGroupCustomSounds)
+        editGroupLabelAttached = findViewById(R.id.editGroupLabelAttached)
+        editGroupLabelDetached = findViewById(R.id.editGroupLabelDetached)
+        editGroupLabelDetachedBabord = findViewById(R.id.editGroupLabelDetachedBabord)
+        editGroupLabelDetachedTribord = findViewById(R.id.editGroupLabelDetachedTribord)
+        tvSoundAttachedStatus = findViewById(R.id.tvSoundAttachedStatus)
+        tvSoundDetachedStatus = findViewById(R.id.tvSoundDetachedStatus)
+        tvSoundDetachedBabordStatus = findViewById(R.id.tvSoundDetachedBabordStatus)
+        tvSoundDetachedTribordStatus = findViewById(R.id.tvSoundDetachedTribordStatus)
+        btnSelectSoundAttached = findViewById(R.id.btnSelectSoundAttached)
+        btnSelectSoundDetached = findViewById(R.id.btnSelectSoundDetached)
+        btnSelectSoundDetachedBabord = findViewById(R.id.btnSelectSoundDetachedBabord)
+        btnSelectSoundDetachedTribord = findViewById(R.id.btnSelectSoundDetachedTribord)
+
         if (isCreateMode) {
             tvTitle.text = "Nouveau groupe"
             btnDelete.visibility = View.GONE
+            updateSoundUIVisibility(false)
         } else {
             tvTitle.text = "Paramètres du groupe"
             val group = groupRepository.loadGroup(groupId!!)
             editGroupName.setText(group?.groupName ?: "")
+            populateAnnouncementUI(group)
         }
+
+        switchGroupUseSound.setOnCheckedChangeListener { _, isChecked ->
+            updateSoundUIVisibility(isChecked)
+        }
+        btnSelectSoundAttached.setOnClickListener { openAudioFilePicker(soundAttachedLauncher) }
+        btnSelectSoundDetached.setOnClickListener { openAudioFilePicker(soundDetachedLauncher) }
+        btnSelectSoundDetachedBabord.setOnClickListener { openAudioFilePicker(soundDetachedBabordLauncher) }
+        btnSelectSoundDetachedTribord.setOnClickListener { openAudioFilePicker(soundDetachedTribordLauncher) }
 
         btnBack.setOnClickListener { finish() }
         btnSave.setOnClickListener { saveGroup() }
         btnDelete.setOnClickListener { confirmDeleteGroup() }
 
         refreshPenonLists()
+    }
+
+    private fun populateAnnouncementUI(group: PenonGroup?) {
+        if (group == null) return
+        soundAttachedPath = group.soundAttachedPath
+        soundDetachedPath = group.soundDetachedPath
+        soundDetachedBabordPath = group.soundDetachedBabordPath
+        soundDetachedTribordPath = group.soundDetachedTribordPath
+
+        switchGroupUseSound.isChecked = group.useSound
+        switchAnnounceAttached.isChecked = group.announceAttached
+        editGroupLabelAttached.setText(group.labelAttached)
+        editGroupLabelDetached.setText(group.labelDetached)
+        editGroupLabelDetachedBabord.setText(group.labelDetachedBabord)
+        editGroupLabelDetachedTribord.setText(group.labelDetachedTribord)
+
+        if (soundAttachedPath.isNotEmpty()) tvSoundAttachedStatus.text = getFileName(Uri.parse(soundAttachedPath))
+        if (soundDetachedPath.isNotEmpty()) tvSoundDetachedStatus.text = getFileName(Uri.parse(soundDetachedPath))
+        if (soundDetachedBabordPath.isNotEmpty()) tvSoundDetachedBabordStatus.text = getFileName(Uri.parse(soundDetachedBabordPath))
+        if (soundDetachedTribordPath.isNotEmpty()) tvSoundDetachedTribordStatus.text = getFileName(Uri.parse(soundDetachedTribordPath))
+
+        updateSoundUIVisibility(group.useSound)
+    }
+
+    private fun updateSoundUIVisibility(useSound: Boolean) {
+        layoutGroupVoiceLabels.visibility = if (useSound) View.GONE else View.VISIBLE
+        layoutGroupCustomSounds.visibility = if (useSound) View.VISIBLE else View.GONE
+    }
+
+    private fun openAudioFilePicker(launcher: ActivityResultLauncher<Intent>) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "audio/*"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        }
+        launcher.launch(intent)
+    }
+
+    private fun getFileName(uri: Uri): String {
+        var name = "Fichier sélectionné"
+        try {
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (idx != -1) name = cursor.getString(idx)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GroupSettings", "getFileName: ${e.message}")
+        }
+        return name
     }
 
     override fun onResume() {
@@ -254,7 +401,20 @@ class GroupSettingsActivity : AppCompatActivity() {
             // Maintenant que le groupe existe, rafraîchir l'UI pour montrer l'ajout de pénons
             refreshPenonLists()
         } else {
-            val group = PenonGroup(groupId = groupId!!, groupName = name)
+            val group = PenonGroup(
+                groupId = groupId!!,
+                groupName = name,
+                useSound = switchGroupUseSound.isChecked,
+                announceAttached = switchAnnounceAttached.isChecked,
+                labelAttached = editGroupLabelAttached.text.toString().takeIf { it.isNotBlank() } ?: "attachée",
+                labelDetached = editGroupLabelDetached.text.toString().takeIf { it.isNotBlank() } ?: "détachée",
+                labelDetachedBabord = editGroupLabelDetachedBabord.text.toString().takeIf { it.isNotBlank() } ?: "détachée bâbord",
+                labelDetachedTribord = editGroupLabelDetachedTribord.text.toString().takeIf { it.isNotBlank() } ?: "détachée tribord",
+                soundAttachedPath = soundAttachedPath,
+                soundDetachedPath = soundDetachedPath,
+                soundDetachedBabordPath = soundDetachedBabordPath,
+                soundDetachedTribordPath = soundDetachedTribordPath
+            )
             groupRepository.saveGroup(group)
             Toast.makeText(this, "Groupe sauvegardé", Toast.LENGTH_SHORT).show()
             finish()

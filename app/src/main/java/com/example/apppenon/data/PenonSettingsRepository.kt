@@ -5,14 +5,9 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.example.apppenon.model.Penon
 import com.example.apppenon.model.Side
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import androidx.core.content.edit
 
 /**
@@ -28,10 +23,13 @@ class PenonSettingsRepository(context: Context) {
         context.getSharedPreferences("penon_data", Context.MODE_PRIVATE)
 
     private val TAG = "PenonSettingsRepo"
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    // Map de StateFlow pour chaque Penon identifié par sa MAC
-    private val penonFlowMap = mutableMapOf<String, MutableStateFlow<Penon?>>()
+    // Flow global : toujours à jour quelle que soit la date d'abonnement.
+    // Mis à jour à chaque load/save/delete — pas de snapshot figé.
+    private val _allPenonsFlow = MutableStateFlow<Map<String, Penon?>>(emptyMap())
+
+    // Cache in-memory des dernières valeurs par MAC
+    private val penonCache = mutableMapOf<String, Penon?>()
 
     // Clé pour stocker la liste des MACs connues
     private val KNOWN_MACS_KEY = "known_mac_addresses"
@@ -41,11 +39,8 @@ class PenonSettingsRepository(context: Context) {
      */
     fun getAllKnownMacAddresses(): Set<String> {
         val macsString = sharedPref.getString(KNOWN_MACS_KEY, "") ?: ""
-        return if (macsString.isEmpty()) {
-            emptySet()
-        } else {
-            macsString.split(",").toSet()
-        }
+        return if (macsString.isEmpty()) emptySet()
+        else macsString.split(",").toSet()
     }
 
     /**
@@ -58,25 +53,10 @@ class PenonSettingsRepository(context: Context) {
     }
 
     /**
-     * ✅ Observer tous les Penons en temps réel
+     * ✅ Observer tous les Penons en temps réel.
+     * Le flow inclut automatiquement tout pénon ajouté ou supprimé après l'abonnement.
      */
-    fun observeAllPenons(): StateFlow<Map<String, Penon?>> {
-        val allFlows = penonFlowMap.values.toList()
-        val combinedFlow = MutableStateFlow<Map<String, Penon?>>(emptyMap())
-
-        if (allFlows.isEmpty()) {
-            return combinedFlow.asStateFlow()
-        }
-
-        // Combiner tous les flows
-        scope.launch {
-            combine(allFlows) { penons ->
-                penonFlowMap.keys.zip(penons).toMap()
-            }.collect { combinedFlow.value = it }
-        }
-
-        return combinedFlow.asStateFlow()
-    }
+    fun observeAllPenons(): StateFlow<Map<String, Penon?>> = _allPenonsFlow.asStateFlow()
 
     /**
      * ✅ Charge un Penon depuis SharedPreferences
@@ -141,26 +121,6 @@ class PenonSettingsRepository(context: Context) {
             "${penon.macAddress}_ids",
             penon.ids
         )
-        penon.labelAttache = sharedPref.getString(
-            "${penon.macAddress}_labelAttache",
-            penon.labelAttache
-        ) ?: penon.labelAttache
-        penon.labelDetache = sharedPref.getString(
-            "${penon.macAddress}_labelDetache",
-            penon.labelDetache
-        ) ?: penon.labelDetache
-        penon.useSound = sharedPref.getBoolean(
-            "${penon.macAddress}_useSound",
-            penon.useSound
-        )
-        penon.soundAttachePath = sharedPref.getString(
-            "${penon.macAddress}_soundAttachePath",
-            penon.soundAttachePath
-        ) ?: penon.soundAttachePath
-        penon.soundDetachePath = sharedPref.getString(
-            "${penon.macAddress}_soundDetachePath",
-            penon.soundDetachePath
-        ) ?: penon.soundDetachePath
         penon.groupId = sharedPref.getString(
             "${penon.macAddress}_groupId",
             penon.groupId
@@ -169,8 +129,7 @@ class PenonSettingsRepository(context: Context) {
             sharedPref.getString("${penon.macAddress}_side", Side.NONE.name) ?: Side.NONE.name
         )
 
-        // Mettre à jour le StateFlow correspondant
-        updateStateFlow(penon)
+        updateFlow(penon.macAddress, penon.copy())
 
         Log.d(TAG, "✅ Penon chargé: ${penon.penonName} (MAC: ${penon.macAddress})")
     }
@@ -181,7 +140,6 @@ class PenonSettingsRepository(context: Context) {
     fun savePenon(penon: Penon) {
         Log.d(TAG, "💾 Sauvegarde Penon: ${penon.penonName}")
 
-        // Ajouter la MAC à la liste des MACs connues
         addKnownMacAddress(penon.macAddress)
 
         sharedPref.edit().apply {
@@ -197,11 +155,6 @@ class PenonSettingsRepository(context: Context) {
             putBoolean("${penon.macAddress}_avrMagZ", penon.avrMagZ)
             putBoolean("${penon.macAddress}_avrAvrMagZ", penon.avrAvrMagZ)
             putBoolean("${penon.macAddress}_detached", penon.detached)
-            putString("${penon.macAddress}_labelAttache", penon.labelAttache)
-            putString("${penon.macAddress}_labelDetache", penon.labelDetache)
-            putBoolean("${penon.macAddress}_useSound", penon.useSound)
-            putString("${penon.macAddress}_soundAttachePath", penon.soundAttachePath)
-            putString("${penon.macAddress}_soundDetachePath", penon.soundDetachePath)
             putBoolean("${penon.macAddress}_count", penon.count)
             putBoolean("${penon.macAddress}_ids", penon.ids)
             putString("${penon.macAddress}_groupId", penon.groupId)
@@ -209,26 +162,45 @@ class PenonSettingsRepository(context: Context) {
             apply()
         }
 
-        // Mettre à jour le StateFlow pour notifier les observateurs
-        updateStateFlow(penon)
+        updateFlow(penon.macAddress, penon.copy())
 
         Log.d(TAG, "✅ Penon sauvegardé et notifié")
     }
 
     /**
-     * ✅ Met à jour le StateFlow du Penon correspondant
+     * ✅ Supprime toutes les données d'un Penon (SharedPreferences + Flow)
      */
-    private fun updateStateFlow(penon: Penon) {
-        val macAddress = penon.macAddress
+    fun deletePenon(macAddress: String) {
+        Log.d(TAG, "🗑️ Suppression Penon: $macAddress")
 
-        // Créer le StateFlow si nécessaire
-        if (!penonFlowMap.containsKey(macAddress)) {
-            penonFlowMap[macAddress] = MutableStateFlow(null)
+        val keys = listOf(
+            "penonName", "editAttachedThreshold", "timeline",
+            "flowState", "sDFlowState", "meanAcc", "sDAcc", "maxAcc",
+            "vbat", "avrMagZ", "avrAvrMagZ", "detached", "count", "ids",
+            "groupId", "side"
+        )
+        sharedPref.edit().apply {
+            keys.forEach { key -> remove("${macAddress}_$key") }
+            apply()
         }
 
-        // Mettre à jour la valeur
-        penonFlowMap[macAddress]?.value = penon.copy()
-        Log.d(TAG, "🔄 StateFlow Penon (MAC: $macAddress) mis à jour")
+        val currentMacs = getAllKnownMacAddresses().toMutableSet()
+        currentMacs.remove(macAddress)
+        sharedPref.edit { putString(KNOWN_MACS_KEY, currentMacs.joinToString(",")) }
+
+        // Retirer du cache et notifier le flow
+        penonCache.remove(macAddress)
+        _allPenonsFlow.value = penonCache.toMap()
+
+        Log.d(TAG, "✅ Penon supprimé: $macAddress")
     }
 
+    /**
+     * Met à jour le cache et émet une nouvelle valeur dans le flow global.
+     */
+    private fun updateFlow(macAddress: String, penon: Penon?) {
+        penonCache[macAddress] = penon
+        _allPenonsFlow.value = penonCache.toMap()
+        Log.d(TAG, "🔄 Flow mis à jour (${penonCache.size} pénon(s))")
+    }
 }

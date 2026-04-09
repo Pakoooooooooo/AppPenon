@@ -239,6 +239,11 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun startSimulation() {
+        // Supprimer les pénons non sauvegardés de la session précédente
+        val savedMacs = repository.getAllKnownMacAddresses()
+        deviceList.removeAll { it.macAddress !in savedMacs }
+        mainListAdapter.refresh()
+
         val uri = SimulationConfig.csvFileUri ?: return
         val success = csvSimulator.loadCSVFile(uri)
         if (success) {
@@ -260,7 +265,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startRealBLEScan() { PR.startScanning() }
+    private fun startRealBLEScan() {
+        // Supprimer les pénons non sauvegardés (ex: pénons de simulation)
+        val savedMacs = repository.getAllKnownMacAddresses()
+        deviceList.removeAll { it.macAddress !in savedMacs }
+        mainListAdapter.refresh()
+        PR.startScanning()
+    }
     private fun stopRealBLEScan() { PR.stopScanning() }
 
     fun updateColor(btn: String) {
@@ -300,6 +311,10 @@ class MainActivity : AppCompatActivity() {
 
     fun getPenonByMac(macAddress: String): Penon? =
         deviceList.find { it.macAddress == macAddress }
+
+    fun removePenon(macAddress: String) {
+        deviceList.removeAll { it.macAddress == macAddress }
+    }
 
     override fun onDestroy() {
         super.onDestroy()

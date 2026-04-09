@@ -6,9 +6,38 @@ import kotlin.math.abs
 data class PenonGroup(
     val groupId: String,
     var groupName: String,
+
+    // Annonces vocales / sons
+    var useSound: Boolean = false,
+    var announceAttached: Boolean = false,
+    var labelAttached: String = "attachée",
+    var labelDetached: String = "détachée",
+    var labelDetachedBabord: String = "détachée bâbord",
+    var labelDetachedTribord: String = "détachée tribord",
+    var soundAttachedPath: String = "",
+    var soundDetachedPath: String = "",
+    var soundDetachedBabordPath: String = "",
+    var soundDetachedTribordPath: String = "",
+
     // Non persisté : état de la dernière annonce pour détecter les changements
     @Transient var lastAnnouncedState: String? = null
 ) : Serializable {
+
+    fun announcementText(state: String): String = when (state) {
+        "attached"          -> "$groupName $labelAttached"
+        "detached"          -> "$groupName $labelDetached"
+        "detached_babord"   -> "$groupName $labelDetachedBabord"
+        "detached_tribord"  -> "$groupName $labelDetachedTribord"
+        else -> ""
+    }
+
+    fun soundPathForState(state: String): String = when (state) {
+        "attached"          -> soundAttachedPath
+        "detached"          -> soundDetachedPath
+        "detached_babord"   -> soundDetachedBabordPath
+        "detached_tribord"  -> soundDetachedTribordPath
+        else -> ""
+    }
 
     companion object {
         /**
@@ -60,12 +89,6 @@ data class PenonGroup(
             else -> 0xFFE91E63.toInt()
         }
 
-        fun announcementText(groupName: String, state: String): String = when (state) {
-            "attached" -> "$groupName attachée"
-            "detached" -> "$groupName détachée"
-            "detached_babord" -> "$groupName détachée bâbord"
-            "detached_tribord" -> "$groupName détachée tribord"
-            else -> ""
-        }
+        // announcementText est maintenant une méthode d'instance (utilise les labels personnalisés)
     }
 }

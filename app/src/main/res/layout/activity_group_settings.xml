@@ -123,6 +123,298 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
+            <!-- Séparateur -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- ANNONCES VOCALES ET SONS -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🔊 ANNONCES VOCALES ET SONS"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#9C27B0"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Switch Mode Vocal / Son -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="#F5F5F5"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🎵 Utiliser des sons personnalisés"
+                    android:textColor="#000000"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchGroupUseSound"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- Switch : Annoncer le retour à l'état attaché -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="#F5F5F5"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Annoncer le retour à l'état normal (voile à nouveau attachée)"
+                    android:textColor="#000000"
+                    android:textSize="14sp" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchAnnounceAttached"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- Mode vocal : 4 labels éditables -->
+            <LinearLayout
+                android:id="@+id/layoutGroupVoiceLabels"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💬 Voile attachée"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+                <EditText
+                    android:id="@+id/editGroupLabelAttached"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="Ex: attachée"
+                    android:inputType="text"
+                    android:gravity="center"
+                    android:background="@android:drawable/edit_text"
+                    android:textColor="#000000"
+                    android:textSize="15sp"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💬 Voile détachée"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+                <EditText
+                    android:id="@+id/editGroupLabelDetached"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="Ex: détachée"
+                    android:inputType="text"
+                    android:gravity="center"
+                    android:background="@android:drawable/edit_text"
+                    android:textColor="#000000"
+                    android:textSize="15sp"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💬 Voile détachée bâbord"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+                <EditText
+                    android:id="@+id/editGroupLabelDetachedBabord"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="Ex: détachée bâbord"
+                    android:inputType="text"
+                    android:gravity="center"
+                    android:background="@android:drawable/edit_text"
+                    android:textColor="#000000"
+                    android:textSize="15sp"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💬 Voile détachée tribord"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+                <EditText
+                    android:id="@+id/editGroupLabelDetachedTribord"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="Ex: détachée tribord"
+                    android:inputType="text"
+                    android:gravity="center"
+                    android:background="@android:drawable/edit_text"
+                    android:textColor="#000000"
+                    android:textSize="15sp"
+                    android:layout_marginBottom="12dp" />
+            </LinearLayout>
+
+            <!-- Mode son : 4 boutons de sélection -->
+            <LinearLayout
+                android:id="@+id/layoutGroupCustomSounds"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <!-- Attachée -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎵 Son — Voile attachée"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+                    <TextView
+                        android:id="@+id/tvSoundAttachedStatus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Aucun son"
+                        android:textColor="#666666"
+                        android:textSize="12sp"
+                        android:layout_gravity="center_vertical"
+                        android:paddingEnd="8dp" />
+                    <Button
+                        android:id="@+id/btnSelectSoundAttached"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📂 Choisir"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Détachée -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎵 Son — Voile détachée"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+                    <TextView
+                        android:id="@+id/tvSoundDetachedStatus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Aucun son"
+                        android:textColor="#666666"
+                        android:textSize="12sp"
+                        android:layout_gravity="center_vertical"
+                        android:paddingEnd="8dp" />
+                    <Button
+                        android:id="@+id/btnSelectSoundDetached"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📂 Choisir"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Détachée bâbord -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎵 Son — Voile détachée bâbord"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+                    <TextView
+                        android:id="@+id/tvSoundDetachedBabordStatus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Aucun son"
+                        android:textColor="#666666"
+                        android:textSize="12sp"
+                        android:layout_gravity="center_vertical"
+                        android:paddingEnd="8dp" />
+                    <Button
+                        android:id="@+id/btnSelectSoundDetachedBabord"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📂 Choisir"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Détachée tribord -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎵 Son — Voile détachée tribord"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+                    <TextView
+                        android:id="@+id/tvSoundDetachedTribordStatus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Aucun son"
+                        android:textColor="#666666"
+                        android:textSize="12sp"
+                        android:layout_gravity="center_vertical"
+                        android:paddingEnd="8dp" />
+                    <Button
+                        android:id="@+id/btnSelectSoundDetachedTribord"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📂 Choisir"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+
         </LinearLayout>
 
     </ScrollView>

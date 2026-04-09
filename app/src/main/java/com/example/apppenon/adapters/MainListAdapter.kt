@@ -136,7 +136,10 @@ class MainListAdapter(
 
         // Détection de changement d'état pour annonce vocale
         if (group.lastAnnouncedState != null && group.lastAnnouncedState != state) {
-            voiceNotificationManager?.bufferGroupStateChange(group.groupId, group.groupName, state)
+            // N'annoncer le retour "attachée" que si l'option est activée dans les paramètres du groupe
+            if (state != "attached" || group.announceAttached) {
+                voiceNotificationManager?.bufferGroupStateChange(group, state)
+            }
         }
         group.lastAnnouncedState = state
 

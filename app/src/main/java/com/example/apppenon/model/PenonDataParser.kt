@@ -5,16 +5,11 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * Gère le parsing et la décoding des données brutes Penon BLE.
- * Responsabilités:
- * - Extraire les données de batterie et débit du payload BLE
- * - Décoder et tester différents formats de données (LE/BE, avec/sans offset)
- * - Valider la cohérence des trames reçues
+ * Gère le parsing et le décodage des données brutes Penon BLE.
  */
 class PenonDataParser {
-    
+
     private val TAG = "eTT-SAIL-BLE"
-    private var lastFrameCnt = -1L
 
     /**
      * Décode les données du Penon et retourne un objet PenonDecodedData.
@@ -52,128 +47,7 @@ class PenonDataParser {
         }
     }
 
-    /**
-     * Parse une trame ETT-SAIL et teste différentes configurations de décodage.
-     * Retourne un rapport formaté avec les résultats des tests.
-     */
-    fun parseETTSailData(data: ByteArray, penonNumber: Int): String {
-        return try {
-            val fullHex = data.joinToString(" ") { "%02X".format(it) }
-            Log.d(TAG, "Penon $penonNumber - Données complètes: $fullHex")
-
-            var manufacturerData = data
-
-            var offset = 0
-
-            while (offset < data.size - 2) {
-                val length = data[offset].toInt() and 0xFF
-                if (length == 0) break
-
-                val type = data[offset + 1].toInt() and 0xFF
-
-                if (type == 0xFF) {
-                    manufacturerData = data.copyOfRange(offset + 2, minOf(offset + 1 + length, data.size))
-                    break
-                }
-
-                offset += length + 1
-            }
-
-            val dataHex = manufacturerData.joinToString(" ") { "%02X".format(it) }
-
-            if (manufacturerData.size < 18) {
-                return "⚠️ Données insuffisantes (${manufacturerData.size} octets)\n" +
-                        "Minimum requis: 18 octets\n\n" +
-                        "HEX: $dataHex"
-            }
-
-            val results = mutableListOf<String>()
-
-            results.add(testDecode(manufacturerData, 0, ByteOrder.LITTLE_ENDIAN, "Sans offset, LE"))
-
-            if (manufacturerData.size >= 19) {
-                results.add(testDecode(manufacturerData, 2, ByteOrder.LITTLE_ENDIAN, "Offset +2, LE"))
-            }
-
-            results.add(testDecode(manufacturerData, 0, ByteOrder.BIG_ENDIAN, "Sans offset, BE"))
-
-            if (manufacturerData.size >= 19) {
-                results.add(testDecode(manufacturerData, 2, ByteOrder.BIG_ENDIAN, "Offset +2, BE"))
-            }
-
-            buildString {
-                appendLine("═══════════════════════════════")
-                appendLine("PENON $penonNumber - TESTS DE DÉCODAGE")
-                appendLine("═══════════════════════════════")
-                results.forEach { appendLine(it) }
-                appendLine("═══════════════════════════════")
-                appendLine("\nDonnées brutes:")
-                appendLine(dataHex)
-            }
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Erreur de décodage Penon $penonNumber", e)
-            "❌ Erreur: ${e.message}\n" +
-                    "Taille: ${data.size} octets\n" +
-                    "HEX: ${data.joinToString(" ") { "%02X".format(it) }}"
-        }
-    }
-
-    /**
-     * Teste le décodage d'une trame avec une configuration spécifique.
-     * Valide la cohérence des données et détecte les trames perdues.
-     */
-    private fun testDecode(data: ByteArray, offset: Int, order: ByteOrder, label: String): String {
-        return try {
-            if (data.size < offset + 18) {
-                return "[$label] Taille insuffisante"
-            }
-
-            val buffer = ByteBuffer.wrap(data).order(order)
-            buffer.position(offset)
-
-            val frameCnt = buffer.int.toLong() and 0xFFFFFFFFL
-            val frameType = buffer.get().toInt() and 0xFF
-            buffer.get() // padding (alignement struct C)
-            val vbat = buffer.short.toInt()
-            val meanMagZ = buffer.short.toInt()
-            val sdMagZ = buffer.short.toInt()
-            val meanAcc = buffer.short.toInt()
-            val maxAcc = buffer.short.toInt()
-
-            val vbatV = vbat / 100.0
-            val isCoherent = frameCnt in 0..100000000 &&
-                    vbatV in 2.0..4.5
-
-            val lostFrames = if (lastFrameCnt >= 0 && frameCnt > lastFrameCnt) {
-                val lost = frameCnt - lastFrameCnt - 1
-                if (lost > 0) " ⚠️ $lost trame(s) perdue(s)" else ""
-            } else ""
-
-            if (isCoherent && lastFrameCnt < frameCnt) {
-                lastFrameCnt = frameCnt
-            }
-
-            val coherentMark = if (isCoherent) "✅" else "❌"
-
-            buildString {
-                appendLine("\n[$label] $coherentMark")
-                appendLine("  Frame: $frameCnt$lostFrames")
-                appendLine("  Type: $frameType")
-                appendLine("  Vbat: ${"%.3f".format(vbatV)} V")
-                appendLine("  MagZ: mean=${meanMagZ} mT×10⁻³, sd=${sdMagZ} mT×10⁻³")
-                appendLine("  Acc: mean=${meanAcc} m.s⁻²×10⁻³, max=${maxAcc} m.s⁻²×10⁻³")
-            }
-
-        } catch (e: Exception) {
-            "[$label] Erreur: ${e.message}"
-        }
-    }
-
-    /**
-     * Réinitialise les compteurs de trame.
-     */
     fun resetFrameCounters() {
-        lastFrameCnt = -1
+        // conservé pour compatibilité avec BLEScanManager.startScanning()
     }
 }

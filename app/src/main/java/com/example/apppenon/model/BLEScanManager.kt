@@ -108,47 +108,21 @@ class BLEScanManager(
         val scanRecord = result.scanRecord
 
         if (scanRecord != null) {
-            val manufacturerData = scanRecord.getManufacturerSpecificData(0xFFFF)
-                ?: scanRecord.bytes
+            val rawData = scanRecord.bytes ?: return
 
-            if (manufacturerData != null && manufacturerData.isNotEmpty()) {
+            if (rawData.isNotEmpty()) {
                 frameCount++
-
                 val currentFrameCount = frameCount
 
-                // Enregistrer si rec activé (peu importe le mode)
                 if (AppData.rec && csvManager.isRecordingActive()) {
-                    csvManager.saveToCSV(manufacturerData, rssi, currentFrameCount, "000")
+                    csvManager.saveToCSV(rawData, rssi, currentFrameCount, result.device.address)
                 }
 
                 handler.post {
-                    val hexData = manufacturerData.joinToString(" ") {
-                        "%02X".format(it)
-                    }
-
-                    Log.d(TAG, "=== PENON 1 - TRAME #$currentFrameCount ===")
-                    Log.d(TAG, "Taille: ${manufacturerData.size} octets")
-                    Log.d(TAG, "HEX: $hexData")
-                    Log.d(TAG, "RSSI: $rssi dBm")
-
-                    // Parser les données (sans affichage UI)
-                    val parsedData = dataParser.parseETTSailData(manufacturerData, 1)
-                    Log.d(TAG, "Parsed: $parsedData")
-                    
-                    // Décoder les données et envoyer à PenonsSettingsActivity
-                    val decodedData = dataParser.decodePenonData(manufacturerData)
+                    val decodedData = dataParser.decodePenonData(rawData)
                     if (decodedData != null) {
-                        // Importer pour utiliser le callback statique
-                        try {
-                            val settingsActivityClass = Class.forName("com.example.apppenon.activities.PenonsSettingsActivity")
-                            settingsActivityClass.getDeclaredMethod(
-                                "updateDecodedData", 
-                                PenonDecodedData::class.java, 
-                                String::class.java
-                            )
-                        } catch (e: Exception) {
-                            Log.d(TAG, "Could not update PenonsSettingsActivity: ${e.message}")
-                        }
+                        Log.d(TAG, "=== TRAME #$currentFrameCount — ${result.device.address} ===")
+                        Log.d(TAG, "Vbat: ${decodedData.vbat} V | MagZ: ${decodedData.meanMagZ} | RSSI: $rssi dBm")
                     }
                 }
             }

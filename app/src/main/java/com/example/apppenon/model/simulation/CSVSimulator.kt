@@ -124,8 +124,13 @@ class CSVSimulator(
                 return
             }
 
-            // Extraire les données hex (entre guillemets)
-            val rawHexData = line.substringAfter("\"").substringBefore("\"")
+            // Extraire les données hex : entre guillemets si présents, sinon colonne 5 directement
+            // (les fichiers record_..._decoded_final.csv n'ont pas de guillemets)
+            val rawHexData = if (line.contains("\"")) {
+                line.substringAfter("\"").substringBefore("\"")
+            } else {
+                parts[5].trim()
+            }
 
             if (rawHexData.isBlank()) {
                 Log.w(TAG, "⚠️ Données hex vides pour frame $frameNumber")
