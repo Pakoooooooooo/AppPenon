@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Nom du groupe + flèche -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvGroupName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Groupe"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/sea" />
+
+            <TextView
+                android:id="@+id/tvPenonCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 pénon(s)"
+                android:textSize="12sp"
+                android:textColor="#888888"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="›"
+                android:textSize="24sp"
+                android:textColor="@color/grey" />
+
+        </LinearLayout>
+
+        <!-- Séparateur -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- État du groupe -->
+        <TextView
+            android:id="@+id/tvGroupState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Voile attachée"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#4CAF50"
+            android:layout_gravity="center_horizontal" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

@@ -8,8 +8,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -17,8 +15,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.apppenon.UIStateManager
 import com.example.apppenon.model.AppData
 import com.example.apppenon.model.Penon
+import com.example.apppenon.model.PenonGroup
 import com.example.apppenon.model.PenonReader
-import com.example.apppenon.adapters.PenonCardAdapter
+import com.example.apppenon.adapters.MainListAdapter
+import com.example.apppenon.data.GroupRepository
 import com.example.apppenon.data.PenonSettingsRepository
 import com.example.apppenon.R
 import com.example.apppenon.model.simulation.SimulationConfig
@@ -26,13 +26,6 @@ import com.example.apppenon.model.simulation.CSVSimulator
 import com.example.apppenon.utils.VoiceNotificationManager
 import kotlinx.coroutines.launch
 
-/**
- * Activité principale - VERSION DYNAMIQUE avec support de simulation.
- *
- * ✅ Détecte automatiquement les Penons via BLE
- * ✅ Crée dynamiquement les objets Penon
- * ✅ 🆕 Support du mode simulation depuis CSV
- */
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
 
@@ -41,25 +34,22 @@ class MainActivity : AppCompatActivity() {
     lateinit var btnStopScan: Button
     lateinit var btnClearData: Button
     lateinit var btnGlobalSettings: Button
+    lateinit var btnAddGroup: Button
     lateinit var etFileName: EditText
-    lateinit var rvPenonCards: RecyclerView
+    lateinit var rvMain: RecyclerView
 
-    lateinit var penonCardAdapter: PenonCardAdapter
-
+    lateinit var mainListAdapter: MainListAdapter
     private lateinit var uiStateManager: UIStateManager
     private lateinit var repository: PenonSettingsRepository
+    private lateinit var groupRepository: GroupRepository
     private lateinit var voiceNotificationManager: VoiceNotificationManager
     private var wasScanning: Boolean = false
 
-    // ✅ ÉTAPE 1 : Déclarer le launcher au niveau de la classe
-    private lateinit var penonSettingsLauncher: ActivityResultLauncher<Intent>
-
     val PR = PenonReader(this)
-
-    // 🆕 Simulateur CSV
     private lateinit var csvSimulator: CSVSimulator
 
     val deviceList = mutableListOf<Penon>()
+    private val groups = mutableListOf<PenonGroup>()
 
     companion object {
         @SuppressLint("StaticFieldLeak")
@@ -73,55 +63,39 @@ class MainActivity : AppCompatActivity() {
         instance = this
         setContentView(R.layout.activity_main)
 
-        // ✅ ÉTAPE 2 : Enregistrer le launcher IMMÉDIATEMENT dans onCreate
-        penonSettingsLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == RESULT_OK) {
-                val updatedPenon = result.data?.getSerializableExtra("updated_penon") as? Penon
-
-                if (updatedPenon != null) {
-                    val index = deviceList.indexOfFirst { it.macAddress == updatedPenon.macAddress }
-
-                    if (index != -1) {
-                        deviceList[index] = updatedPenon
-                        Toast.makeText(this, "Données mises à jour", Toast.LENGTH_SHORT).show()
-                        penonCardAdapter.notifyItemChanged(index)
-                    }
-                }
-            }
-        }
-
         repository = PenonSettingsRepository(this)
+        groupRepository = GroupRepository(this)
         voiceNotificationManager = VoiceNotificationManager(this)
 
-        // Charger le mute time global
         val globalPrefs = getSharedPreferences("global_settings", MODE_PRIVATE)
         AppData.muteTimeSeconds = globalPrefs.getInt("mute_time_seconds", 0)
 
-        // 🆕 Initialiser le simulateur
         csvSimulator = CSVSimulator(this, PR.bleScanManager)
 
         initializeViews()
         loadKnownPenons()
+        loadGroups()
 
         uiStateManager = UIStateManager(this)
 
-        // ✅ ÉTAPE 3 : Configurer l'adaptateur avec le launcher déjà prêt
-        penonCardAdapter = PenonCardAdapter(
-            onPenonClick = { detectedPenon ->
-                val penon = getOrCreatePenon(detectedPenon.macAddress)
-
+        mainListAdapter = MainListAdapter(
+            allPenons = deviceList,
+            groups = groups,
+            voiceNotificationManager = voiceNotificationManager,
+            onUnconfigPenonClick = { penon ->
                 val intent = Intent(this, PenonsSettingsActivity::class.java)
                 intent.putExtra("penon_mac_address", penon.macAddress)
-                penonSettingsLauncher.launch(intent)
+                startActivity(intent)
             },
-            penonSettings = deviceList,
-            voiceNotificationManager = voiceNotificationManager
+            onGroupClick = { group ->
+                val intent = Intent(this, GroupDetailActivity::class.java)
+                intent.putExtra("group_id", group.groupId)
+                startActivity(intent)
+            }
         )
 
-        rvPenonCards.layoutManager = LinearLayoutManager(this)
-        rvPenonCards.adapter = penonCardAdapter
+        rvMain.layoutManager = LinearLayoutManager(this)
+        rvMain.adapter = mainListAdapter
 
         if (PR.bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth non disponible", Toast.LENGTH_LONG).show()
@@ -130,7 +104,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         PR.requestBluetoothPermissions()
-
         setupButtonListeners()
         uiStateManager.updateUIState(PR)
         observeSettingsChanges()
@@ -143,27 +116,35 @@ class MainActivity : AppCompatActivity() {
         PR.stopScanning()
     }
 
+    override fun onResume() {
+        super.onResume()
+        deviceList.forEach { penon -> repository.loadPenon(penon) }
+        loadGroups()
+        mainListAdapter.refresh()
+
+        if (!SimulationConfig.isSimulationMode) ensureSimulationStopped()
+        if (wasScanning) PR.startScanning()
+    }
+
     private fun loadKnownPenons() {
         val knownMacs = repository.getAllKnownMacAddresses()
-
         knownMacs.forEach { mac ->
             val penon = Penon(macAddress = mac)
             repository.loadPenon(penon)
             deviceList.add(penon)
         }
-
         if (deviceList.isNotEmpty()) {
-            Toast.makeText(
-                this,
-                "${deviceList.size} Penon(s) chargé(s)",
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(this, "${deviceList.size} Penon(s) chargé(s)", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun loadGroups() {
+        groups.clear()
+        groups.addAll(groupRepository.loadAllGroups())
     }
 
     fun getOrCreatePenon(macAddress: String): Penon {
         var penon = deviceList.find { it.macAddress == macAddress }
-
         if (penon == null) {
             penon = Penon(
                 penonName = "Penon ${macAddress.takeLast(5)}",
@@ -172,17 +153,11 @@ class MainActivity : AppCompatActivity() {
                 editAttachedThreshold = 3500,
                 sDFlowState = true,
             )
-
             repository.loadPenon(penon)
             deviceList.add(penon)
-
-            Toast.makeText(
-                this,
-                "Nouveau Penon détecté : ${penon.penonName}",
-                Toast.LENGTH_SHORT
-            ).show()
+            mainListAdapter.refresh()
+            Toast.makeText(this, "Nouveau Penon détecté : ${penon.penonName}", Toast.LENGTH_SHORT).show()
         }
-
         return penon
     }
 
@@ -193,29 +168,11 @@ class MainActivity : AppCompatActivity() {
                 allPenons.forEach { (mac, penon) ->
                     val index = deviceList.indexOfFirst { it.macAddress == mac }
                     if (index != -1 && penon != null) {
-                        // ✅ Correction mutation : On remplace l'objet dans la liste mutable
                         deviceList[index] = penon.copy()
                     }
                 }
-                penonCardAdapter.notifyDataSetChanged()
+                mainListAdapter.refresh()
             }
-        }
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    override fun onResume() {
-        super.onResume()
-        deviceList.forEach { penon ->
-            repository.loadPenon(penon)
-        }
-        penonCardAdapter.notifyDataSetChanged()
-
-        // Si on revient des paramètres et que le mode simulation a été désactivé
-        if (!SimulationConfig.isSimulationMode) {
-            ensureSimulationStopped()
-        }
-        if (wasScanning) {
-            PR.startScanning()
         }
     }
 
@@ -225,43 +182,38 @@ class MainActivity : AppCompatActivity() {
         btnStopScan = findViewById(R.id.btnStopScan)
         btnClearData = findViewById(R.id.btnClearData)
         btnGlobalSettings = findViewById(R.id.btnGlobalSettings)
+        btnAddGroup = findViewById(R.id.btnAddGroup)
         etFileName = findViewById(R.id.etFileName)
-        rvPenonCards = findViewById(R.id.rvPenonCards)
+        rvMain = findViewById(R.id.rvPenonCards)
     }
 
     @SuppressLint("SetTextI18n")
     private fun setupButtonListeners() {
-        // 🆕 Démarrer le scan (BLE ou Simulation)
+        btnAddGroup.setOnClickListener {
+            startActivity(Intent(this, GroupSettingsActivity::class.java))
+        }
+
         btnStartScan.setOnClickListener {
             if (SimulationConfig.isReadyToSimulate()) {
                 startSimulation()
             } else if (SimulationConfig.isSimulationMode) {
-                Toast.makeText(
-                    this,
-                    "Veuillez sélectionner un fichier CSV dans les paramètres",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this, "Veuillez sélectionner un fichier CSV dans les paramètres", Toast.LENGTH_LONG).show()
             } else {
                 startRealBLEScan()
             }
             updateColor("start")
         }
 
-        // 🆕 Arrêter le scan (BLE ou Simulation)
         btnStopScan.setOnClickListener {
             if (SimulationConfig.isSimulationMode) {
                 if (csvSimulator.isRunning()) {
-                    // Mettre en pause
                     csvSimulator.pauseSimulation()
                     tvStatus.text = "⏸️ Simulation en pause"
                     btnStopScan.text = "▶️ Reprendre"
-                    Toast.makeText(this, "Simulation en pause", Toast.LENGTH_SHORT).show()
                 } else if (csvSimulator.isPaused()) {
-                    // Reprendre
                     csvSimulator.resumeSimulation()
                     tvStatus.text = "🎬 Simulation en cours (${csvSimulator.getFrameCount()} trames)"
                     btnStopScan.text = "⏸️ Pause"
-                    Toast.makeText(this, "Simulation reprise", Toast.LENGTH_SHORT).show()
                 }
             } else {
                 stopRealBLEScan()
@@ -271,55 +223,34 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnClearData.setOnClickListener {
-            penonCardAdapter.clearAll()
-
-            // Si en mode simulation, arrêter et réinitialiser
+            deviceList.clear()
+            mainListAdapter.refresh()
             if (SimulationConfig.isSimulationMode) {
                 csvSimulator.reset()
                 tvStatus.text = "En attente..."
             }
-
             updateColor("clear")
         }
 
-        // 🆕 Bouton Paramètres globaux (Simulation)
         btnGlobalSettings.setOnClickListener {
-            val intent = Intent(this, SettingActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, SettingActivity::class.java))
         }
     }
 
-    /**
-     * 🆕 Démarre la simulation depuis le fichier CSV.
-     */
     @SuppressLint("SetTextI18n")
     private fun startSimulation() {
         val uri = SimulationConfig.csvFileUri ?: return
-
-        // Charger le fichier CSV
         val success = csvSimulator.loadCSVFile(uri)
-
         if (success) {
             csvSimulator.startSimulation()
             tvStatus.text = "🎬 Simulation en cours (${csvSimulator.getFrameCount()} trames)"
             btnStopScan.text = "⏸️ Pause"
-            Toast.makeText(
-                this,
-                "Simulation démarrée : ${SimulationConfig.csvFileName}",
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(this, "Simulation démarrée : ${SimulationConfig.csvFileName}", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(
-                this,
-                "Erreur : impossible de charger le fichier CSV",
-                Toast.LENGTH_LONG
-            ).show()
+            Toast.makeText(this, "Erreur : impossible de charger le fichier CSV", Toast.LENGTH_LONG).show()
         }
     }
 
-    /**
-     * Arrête la simulation si elle est en cours (appelé lors du changement de mode).
-     */
     @SuppressLint("SetTextI18n")
     private fun ensureSimulationStopped() {
         if (csvSimulator.isRunning() || csvSimulator.isPaused()) {
@@ -329,22 +260,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Démarre le scan BLE réel.
-     */
-    private fun startRealBLEScan() {
-        PR.startScanning()
-    }
+    private fun startRealBLEScan() { PR.startScanning() }
+    private fun stopRealBLEScan() { PR.stopScanning() }
 
-    /**
-     * Arrête le scan BLE réel.
-     */
-    private fun stopRealBLEScan() {
-        PR.stopScanning()
-    }
-
-    fun updateColor(btn: String){
-        // Change la couleur des boutons en fonction de l'état actuel
+    fun updateColor(btn: String) {
         if (btn == "start") {
             btnStartScan.setBackgroundColor(resources.getColor(R.color.grey))
             btnStartScan.setTextColor(resources.getColor(R.color.white))
@@ -379,8 +298,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun getPenonByMac(macAddress: String): Penon? =
+        deviceList.find { it.macAddress == macAddress }
+
     override fun onDestroy() {
-        // 🆕 Arrêter la simulation avant la destruction de l'activité
         super.onDestroy()
         try {
             csvSimulator.stopSimulation()
@@ -391,14 +312,5 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "Erreur lors du nettoyage: ${e.message}", e)
         }
-    }
-
-    // Dans MainActivity.kt
-    fun getPenonByMac(macAddress: String): Penon? {
-        // Adaptez selon votre structure de données
-        // Par exemple si vous avez une liste de Penons:
-        return deviceList.find { it.macAddress == macAddress }
-
-        // Ou si vous utilisez une autre structure, adaptez en conséquence
     }
 }

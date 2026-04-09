@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:fitsSystemWindows="true">
+
+    <!-- Bouton retour -->
+    <Button
+        android:id="@+id/btnGroupSettingsBack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="← Retour"
+        android:textSize="12sp"
+        android:backgroundTint="@color/grey"
+        android:textColor="@color/white"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Titre -->
+    <TextView
+        android:id="@+id/tvGroupSettingsTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Paramètres du groupe"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/sea"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Nom du groupe -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Nom du groupe"
+        android:textSize="14sp"
+        android:textColor="@color/grey" />
+
+    <EditText
+        android:id="@+id/editGroupName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Ex: Grande Voile, Foc..."
+        android:textSize="16sp"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Boutons Sauvegarder / Supprimer -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="24dp">
+
+        <Button
+            android:id="@+id/btnSaveGroup"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="💾 Sauvegarder"
+            android:backgroundTint="@color/sea"
+            android:textColor="@color/white" />
+
+        <Button
+            android:id="@+id/btnDeleteGroup"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🗑️ Supprimer"
+            android:backgroundTint="#C62828"
+            android:textColor="@color/white" />
+
+    </LinearLayout>
+
+    <!-- Séparateur -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E0E0E0"
+        android:layout_marginBottom="16dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Pénons dans ce groupe -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Pénons dans ce groupe"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/grey"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:id="@+id/layoutInGroupPenons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="24dp" />
+
+            <!-- Pénons disponibles à ajouter -->
+            <TextView
+                android:id="@+id/tvAvailableTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ajouter un pénon au groupe"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/grey"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:id="@+id/layoutAvailablePenons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>

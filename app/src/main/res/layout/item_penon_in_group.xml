@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <!-- Badge côté (Bâbord / Tribord) -->
+        <TextView
+            android:id="@+id/tvSideBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="B"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:background="@color/grey"
+            android:padding="6dp"
+            android:layout_marginEnd="12dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvPenonItemName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pénon"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="@color/sea" />
+
+            <TextView
+                android:id="@+id/tvPenonItemMac"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MAC: 00:00"
+                android:textSize="11sp"
+                android:textColor="#888888" />
+
+        </LinearLayout>
+
+        <!-- État -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextView
+                android:id="@+id/tvPenonItemStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔗 ATTACHÉ"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#4CAF50" />
+
+            <TextView
+                android:id="@+id/tvPenonItemBattery"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔋 ??V"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

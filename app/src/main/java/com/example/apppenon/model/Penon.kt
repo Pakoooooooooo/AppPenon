@@ -5,6 +5,10 @@ data class Penon (
     //Variables modifiables par l'utilisateur
     var penonName: String = "penon",
     var macAddress: String = "00:00:00:00:00:00",
+
+    // Appartenance à un groupe
+    var groupId: String = "",        // vide = pénon non affecté à un groupe
+    var side: Side = Side.NONE,      // côté dans le groupe (bâbord / tribord)
     var flowState: Boolean = false,
     var sDFlowState: Boolean = false,
     var meanAcc: Boolean = false,

@@ -66,6 +66,16 @@
             android:exported="true"
             tools:ignore="DiscouragedApi">
         </activity>
+        <activity
+            android:name=".activities.GroupDetailActivity"
+            android:screenOrientation="portrait"
+            android:exported="false">
+        </activity>
+        <activity
+            android:name=".activities.GroupSettingsActivity"
+            android:screenOrientation="portrait"
+            android:exported="false">
+        </activity>
     </application>
 
 </manifest>

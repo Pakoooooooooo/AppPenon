@@ -6,7 +6,7 @@
     android:padding="16dp"
     android:fitsSystemWindows="true">
 
-    <!-- Boutons Settings (toujours visible) -->
+    <!-- Barre haute : Paramètres globaux + bouton Créer groupe -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -14,14 +14,22 @@
         android:gravity="end">
 
         <Button
+            android:id="@+id/btnAddGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:text="+ Groupe"
+            android:textSize="12sp"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="@color/sea"
+            android:textColor="@color/white" />
+
+        <Button
             android:id="@+id/btnGlobalSettings"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:text="⚙️"
             android:textSize="16sp"
-            android:layout_marginEnd="8dp"
-            android:backgroundTint="#FF9800"
-            />
+            android:backgroundTint="#FF9800" />
 
         <Button
             android:id="@+id/appModeBtn"
@@ -29,11 +37,11 @@
             android:layout_height="50dp"
             android:text="🔧"
             android:visibility="gone"
-            android:textSize="16sp"
-            />
+            android:textSize="16sp" />
+
     </LinearLayout>
 
-    <!-- Status (visible dans les deux modes) -->
+    <!-- Status -->
     <TextView
         android:id="@+id/tvStatus"
         android:layout_width="match_parent"
@@ -42,9 +50,9 @@
         android:text="En attente..."
         android:textSize="16sp"
         android:gravity="center"
-        android:textColor="@color/grey"/>
+        android:textColor="@color/grey" />
 
-    <!-- Boutons de contrôle -->
+    <!-- Boutons de contrôle scan -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -58,7 +66,7 @@
             android:layout_weight="1"
             android:layout_marginHorizontal="2dp"
             android:text="▶️ Démarrer"
-            android:textSize="9sp"/>
+            android:textSize="9sp" />
 
         <Button
             android:id="@+id/btnStopScan"
@@ -70,7 +78,7 @@
             android:enabled="false"
             android:backgroundTint="@color/grey"
             android:textColor="@color/white"
-            android:textSize="9sp"/>
+            android:textSize="9sp" />
 
         <Button
             android:id="@+id/btnClearData"
@@ -79,10 +87,11 @@
             android:layout_weight="1"
             android:layout_marginHorizontal="2dp"
             android:text="🗑️ Effacer"
-            android:textSize="9sp"/>
+            android:textSize="9sp" />
+
     </LinearLayout>
 
-    <!-- Champ nom de fichier (visible si rec coché) -->
+    <!-- Champ nom de fichier CSV (masqué par défaut) -->
     <EditText
         android:id="@+id/etFileName"
         android:layout_width="match_parent"
@@ -91,7 +100,7 @@
         android:hint="Nom du fichier CSV"
         android:visibility="gone" />
 
-    <!-- RecyclerView pour afficher les Penons détectés -->
+    <!-- RecyclerView principal : pénons non configurés + groupes -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvPenonCards"
         android:layout_width="match_parent"

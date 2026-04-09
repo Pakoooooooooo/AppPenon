@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.example.apppenon.model.Penon
+import com.example.apppenon.model.Side
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -160,6 +161,13 @@ class PenonSettingsRepository(context: Context) {
             "${penon.macAddress}_soundDetachePath",
             penon.soundDetachePath
         ) ?: penon.soundDetachePath
+        penon.groupId = sharedPref.getString(
+            "${penon.macAddress}_groupId",
+            penon.groupId
+        ) ?: penon.groupId
+        penon.side = Side.valueOf(
+            sharedPref.getString("${penon.macAddress}_side", Side.NONE.name) ?: Side.NONE.name
+        )
 
         // Mettre à jour le StateFlow correspondant
         updateStateFlow(penon)
@@ -196,6 +204,8 @@ class PenonSettingsRepository(context: Context) {
             putString("${penon.macAddress}_soundDetachePath", penon.soundDetachePath)
             putBoolean("${penon.macAddress}_count", penon.count)
             putBoolean("${penon.macAddress}_ids", penon.ids)
+            putString("${penon.macAddress}_groupId", penon.groupId)
+            putString("${penon.macAddress}_side", penon.side.name)
             apply()
         }
 

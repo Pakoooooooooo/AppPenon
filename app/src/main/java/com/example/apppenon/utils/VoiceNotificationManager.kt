@@ -41,6 +41,14 @@ class VoiceNotificationManager(private val context: Context) : TextToSpeech.OnIn
         val labelDetache: String
     )
 
+    data class PendingGroupAnnouncement(
+        val groupId: String,
+        val groupName: String,
+        val state: String
+    )
+
+    private val pendingGroupAnnouncements = mutableMapOf<String, PendingGroupAnnouncement>()
+
     init {
         textToSpeech = TextToSpeech(context, this)
     }
@@ -114,6 +122,53 @@ class VoiceNotificationManager(private val context: Context) : TextToSpeech.OnIn
     }
 
     /**
+     * Bufferise ou annonce immédiatement un changement d'état d'un groupe.
+     */
+    fun bufferGroupStateChange(groupId: String, groupName: String, state: String) {
+        val muteTime = AppData.muteTimeSeconds
+
+        if (muteTime <= 0) {
+            announceGroupState(groupName, state)
+            lastAnnouncementTime = System.currentTimeMillis()
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        val elapsed = now - lastAnnouncementTime
+        val muteTimeMs = muteTime * 1000L
+
+        if (elapsed >= muteTimeMs) {
+            announceGroupState(groupName, state)
+            lastAnnouncementTime = System.currentTimeMillis()
+            return
+        }
+
+        pendingGroupAnnouncements[groupId] = PendingGroupAnnouncement(groupId, groupName, state)
+
+        if (flushRunnable == null) {
+            val remainingMs = muteTimeMs - elapsed
+            flushRunnable = Runnable { flushAnnouncements() }
+            handler.postDelayed(flushRunnable!!, remainingMs)
+        }
+    }
+
+    /**
+     * Annonce vocale immédiate de l'état d'un groupe.
+     */
+    fun announceGroupState(groupName: String, state: String) {
+        if (!isInitialized || textToSpeech == null) return
+        val text = when (state) {
+            "attached" -> "$groupName attachée"
+            "detached" -> "$groupName détachée"
+            "detached_babord" -> "$groupName détachée bâbord"
+            "detached_tribord" -> "$groupName détachée tribord"
+            else -> return
+        }
+        Log.d(TAG, "Annonce groupe: $text")
+        textToSpeech?.speak(text, TextToSpeech.QUEUE_ADD, null, "GROUP_$groupName")
+    }
+
+    /**
      * Annonce tous les changements bufferises et demarre une nouvelle periode mute.
      */
     private fun flushAnnouncements() {
@@ -154,6 +209,13 @@ class VoiceNotificationManager(private val context: Context) : TextToSpeech.OnIn
                 null,
                 "PENON_STATE_CHANGE_BATCH"
             )
+        }
+
+        // Annoncer les changements d'état des groupes bufferisés
+        val groupAnnouncements = pendingGroupAnnouncements.values.toList()
+        pendingGroupAnnouncements.clear()
+        for (ga in groupAnnouncements) {
+            announceGroupState(ga.groupName, ga.state)
         }
 
         // Nouvelle periode mute commence maintenant
@@ -215,6 +277,7 @@ class VoiceNotificationManager(private val context: Context) : TextToSpeech.OnIn
         flushRunnable?.let { handler.removeCallbacks(it) }
         flushRunnable = null
         pendingAnnouncements.clear()
+        pendingGroupAnnouncements.clear()
         textToSpeech?.stop()
         textToSpeech?.shutdown()
         soundManager.release()

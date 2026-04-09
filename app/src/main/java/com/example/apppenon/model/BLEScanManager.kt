@@ -231,7 +231,7 @@ class BLEScanManager(
         val csvFile = csvManager.getCreatedFiles()
 
         val statusMsg = when (AppData.mode) {
-            0 -> "✓ Scan arrêté - ${act.penonCardAdapter.itemCount} Penon(s) détecté(s)"
+            0 -> "✓ Scan arrêté - ${act.deviceList.size} Penon(s) détecté(s)"
             1 -> buildString {
                 appendLine("Scan arrêté - $frameCount")
                 if (csvFile != null) {
@@ -286,10 +286,12 @@ class BLEScanManager(
                         penonFrameCounts[deviceAddress] = currentCount
 
                         handler.post {
-                            // ✅ Utiliser la méthode existante d'update
-                            act.penonCardAdapter.updatePenon(deviceAddress, manufacturerData, this@BLEScanManager)
+                            // S'assurer que le pénon existe dans la liste
+                            act.getOrCreatePenon(deviceAddress)
+                            // Mettre à jour les données BLE et rafraîchir l'affichage
+                            act.mainListAdapter.updatePenonData(deviceAddress, manufacturerData)
 
-                            val totalPenons = act.penonCardAdapter.itemCount
+                            val totalPenons = act.deviceList.size
                             val recordingStatus = if (csvManager.isRecordingActive() && AppData.rec) "🔴 " else ""
                             act.tvStatus.text = "${recordingStatus}📡 $totalPenons Penon(s) détecté(s)"
                         }
